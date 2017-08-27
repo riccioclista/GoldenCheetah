@@ -53,6 +53,7 @@
 #include "RemoteControl.h"
 #include "BodyMeasures.h"
 #include "HrvMeasures.h"
+#include "PDModel.h"
 
 class QGroupBox;
 class QHBoxLayout;
@@ -921,7 +922,7 @@ class CPEstiamtesPage : public QWidget
     };
     
     public:
-        CPEstiamtesPage(Context *context, bool isRun);
+        CPEstiamtesPage(Context *context, QList<PDEstimate> estimates);
     
     private slots:
         void configChanged(qint32 config);
@@ -929,8 +930,8 @@ class CPEstiamtesPage : public QWidget
 
     private:
         Context *context;
-        const bool isRun;
-        
+        QList<PDEstimate> estimates;
+
         QComboBox *modelCombo;
         QTreeWidget *ranges;
 };
