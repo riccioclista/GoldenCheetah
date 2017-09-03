@@ -23,6 +23,7 @@
 #include "Context.h"
 #include "RideCache.h"
 #include "PDModel.h"
+#include "Zones.h"
 
 #include <QThread>
 #include <QMutex>
@@ -30,6 +31,21 @@
 #include <QNetworkReply>
 #include <QScrollArea>
 #include <QPushButton>
+
+struct ZoneRangeEstimateComparisonResult
+{
+    bool isCpDifferent;
+    bool isFtpDifferent;
+    bool isWPrimeDifferent;
+    bool isPMaxDifferent;
+
+    bool isDifferent() const {
+        return isCpDifferent ||
+               isFtpDifferent ||
+               isWPrimeDifferent ||
+               isPMaxDifferent;
+    }
+};
 
 class Estimator : public QThread {
 
@@ -49,6 +65,8 @@ class Estimator : public QThread {
         // cancel any pending/running and kick off with 15 sec delay
         void refresh();
 
+        static ZoneRangeEstimateComparisonResult compareZoneRangeToEstimate(ZoneRange range, PDEstimate est);
+
     public slots:
 
         // setup and run estimators
@@ -65,6 +83,9 @@ class Estimator : public QThread {
         QTimer singleshot;
 
         bool abort;
+
+    private:
+        void updateCPRangeSettings();
 };
 
 #endif
