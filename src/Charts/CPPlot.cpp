@@ -40,6 +40,7 @@
 #include <algorithm> // for std::lower_bound
 
 #include "CriticalPowerWindow.h"
+#include "GcOverlayWidget.h"
 #include "RideItem.h"
 #include "IntervalItem.h"
 #include "LogTimeScaleDraw.h"
@@ -370,6 +371,9 @@ CPPlot::initModel()
 
     if (pdModel) {
 
+        // Model helper
+        parent->overlayWidget->setTitle(0, (fit > 1 ? tr("Energy/Time ") : tr("")) + pdModel->name());
+
         if (fit == 0 || model >= 3) { //!!! always envelope fit the ecp, ward-smith and velo model
 
             // envelope fit always uses all data
@@ -400,6 +404,11 @@ CPPlot::initModel()
 
         updateModelHelper();
         parent->setSummary(pdModel->fitsummary);
+
+   } else {
+
+        // Model helper
+        parent->overlayWidget->setTitle(0, tr("No Model"));
    }
 
     #if GC_HAVE_MODEL_LABS
@@ -1254,7 +1263,7 @@ CPPlot::plotBests(RideItem *rideItem)
 
                 QwtSymbol *sym = new QwtSymbol;
                 sym->setStyle(QwtSymbol::Ellipse);
-                if (criticalSeries == CriticalPowerWindow::work)
+                if (criticalSeries == CriticalPowerWindow::work && !filterBest)
                     sym->setSize(2*dpiXFactor);
                 else
                     sym->setSize((filterBest ? 8 : 4) *dpiXFactor);
@@ -1273,7 +1282,7 @@ CPPlot::plotBests(RideItem *rideItem)
             else
                 curve->setBrush(QBrush(fill));
 
-            if (criticalSeries == CriticalPowerWindow::work)
+            if (criticalSeries == CriticalPowerWindow::work && !filterBest)
                 curve->setSamples(time, work);
             else if (criticalSeries == CriticalPowerWindow::veloclinicplot)
                 curve->setSamples(bestsCache->meanMaxArray(rideSeries).data()+1, wprime.data(), maxNonZero-1);
@@ -1374,15 +1383,18 @@ CPPlot::plotBests(RideItem *rideItem)
                     filtertime.resize(0);
                     filterpower.clear();
                     filterpower.resize(0);
+                    QVector<double> filterwork;
+
                     for(int i=0; i<t.count(); i++) {
                         if (t[i] >0) {
                             filtertime << t[i];
-                            filterpower << p[i];
+                            filterpower << p[i]; // used to fit as well as plot
+                            filterwork << p[i] * (t[i]*60/1000.0f);
                         }
                     }
 
                     // only show filtered data
-                    curve->setSamples(filtertime.data(), filterpower.data(), filterpower.count());
+                    curve->setSamples(filtertime.data(), criticalSeries == CriticalPowerWindow::work ? filterwork.data() : filterpower.data(), filterpower.count());
 
                 } else {
 

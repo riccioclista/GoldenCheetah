@@ -229,6 +229,7 @@ QDataStream &operator<<(QDataStream &out, const LTMSettings &settings)
         out<<metric.datafilter;
         out<<metric.measureGroup;
         out<<metric.measureField;
+        out<<metric.ignoreZeros;
     }
     out<<settings.showData;
     out<<settings.stack;
@@ -357,6 +358,9 @@ while(counter-- && !in.atEnd()) {
         if (version >= 17) {
             in >> m.measureGroup;
             in >> m.measureField;
+        }
+        if (version >= 18) {
+            in >> m.ignoreZeros;
         }
         bool keep=true;
         // check for deprecated things and set keep=false if
