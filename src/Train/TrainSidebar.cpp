@@ -46,6 +46,7 @@
 #include "MonarkController.h"
 #include "KettlerController.h"
 #include "KettlerRacerController.h"
+#include "DaumController.h"
 #endif
 #include "ANTlocalController.h"
 #include "NullController.h"
@@ -334,7 +335,7 @@ TrainSidebar::TrainSidebar(Context *context) : GcWindow(context), context(contex
     lap_time = QTime();
     lap_elapsed_msec = 0;
 
-    recordFile = NULL;
+    rrFile = recordFile = NULL;
     status = 0;
     setStatusFlags(RT_MODE_ERGO);         // ergo mode by default
     mode = ERG;
@@ -646,6 +647,8 @@ TrainSidebar::configChanged(qint32)
             Devices[i].controller = new KettlerController(this, &Devices[i]);
         } else if (Devices.at(i).type == DEV_KETTLER_RACER) {
             Devices[i].controller = new KettlerRacerController(this, &Devices[i]);
+        } else if (Devices.at(i).type == DEV_DAUM) {
+            Devices[i].controller = new DaumController(this, &Devices[i]);
 #endif
 #ifdef GC_HAVE_LIBUSB
         } else if (Devices.at(i).type == DEV_FORTIUS) {
@@ -659,6 +662,8 @@ TrainSidebar::configChanged(qint32)
             Devices[i].controller = new ANTlocalController(this, &Devices[i]);
             // connect slot for receiving remote control commands
             connect(Devices[i].controller, SIGNAL(remoteControl(uint16_t)), this, SLOT(remoteControl(uint16_t)));
+            // connect slot for receiving rrData
+            connect(Devices[i].controller, SIGNAL(rrData(uint16_t,uint8_t,uint8_t)), this, SLOT(rrData(uint16_t,uint8_t,uint8_t)));
 #ifdef QT_BLUETOOTH_LIB
         } else if (Devices.at(i).type == DEV_BT40) {
             Devices[i].controller = new BT40Controller(this, &Devices[i]);
@@ -1355,6 +1360,14 @@ void TrainSidebar::Stop(int deviceStatus)        // when stop button is pressed
         // close and reset File
         recordFile->close();
 
+        // close rrFile
+        if (rrFile) {
+            //fprintf(stderr, "Closing r-r file\n"); fflush(stderr);
+            rrFile->close();
+            delete rrFile;
+            rrFile=NULL;
+        }
+
         if(deviceStatus == DEVICE_ERROR)
         {
             recordFile->remove();
@@ -1370,6 +1383,9 @@ void TrainSidebar::Stop(int deviceStatus)        // when stop button is pressed
             RideImportWizard *dialog = new RideImportWizard (list, context);
             dialog->process(); // do it!
         }
+
+        // cancel recording
+        status &= ~RT_RECORDING;
     }
 
     if (status & RT_WORKOUT) {
@@ -2695,6 +2711,39 @@ TrainSidebar::remoteControl(uint16_t command)
     default:
         break;
     }
+}
+
+// HRV R-R data received
+void TrainSidebar::rrData(uint16_t  rrtime, uint8_t count, uint8_t bpm)
+{
+    if (status&RT_RECORDING && rrFile == NULL && recordFile != NULL) {
+        QString rrfile = recordFile->fileName().replace("csv", "rr");
+        //fprintf(stderr, "First r-r, need to open file %s\n", rrfile.toStdString().c_str()); fflush(stderr);
+
+        // setup the rr file
+        rrFile = new QFile(rrfile);
+        if (!rrFile->open(QFile::WriteOnly | QFile::Truncate)) {
+            delete rrFile;
+            rrFile=NULL;
+        } else {
+
+            // CSV File header
+            QTextStream recordFileStream(rrFile);
+            recordFileStream << "secs, hr, msecs\n";
+        }
+    }
+
+    // output a line if recording and file ready
+    if (status&RT_RECORDING && rrFile) {
+        QTextStream recordFileStream(rrFile);
+
+        // convert from milliseconds to secondes
+        double secs = double(session_elapsed_msec + session_time.elapsed()) / 1000.00;
+
+        // output a line
+        recordFileStream << secs << ", " << bpm << ", " << rrtime << "\n";
+    }
+    //fprintf(stderr, "R-R: %d ms, HR=%d, count=%d\n", rrtime, bpm, count); fflush(stderr);
 }
 
 // connect/disconnect automatically when view changes

@@ -63,6 +63,7 @@ ANTChannel::init()
     lastMessageTimestamp = lastMessageTimestamp2 = parent->getElapsedTime();
     blacklisted=0;
     sc_speed_active = sc_cadence_active = 0;
+    lastHRmeasurement = 0;
 }
 
 //
@@ -734,22 +735,52 @@ void ANTChannel::broadcastEvent(unsigned char *ant_message)
            // HR
            case CHANNEL_TYPE_HR:
            {
-               // Heart rate
-               uint16_t time = antMessage.measurementTime - lastMessage.measurementTime;
-               if (time) {
+               // Heart rate separate from R-R
+               if (antMessage.instantHeartrate >0) {
+
                    nullCount = 0;
                    parent->setBPM(antMessage.instantHeartrate);
                    value2 = value = antMessage.instantHeartrate;
 
-                    // lets emit a signal for collected HR R-R data
-                    emit rrData(antMessage.measurementTime, antMessage.heartrateBeats, antMessage.instantHeartrate);
-
                } else {
+
                    nullCount++;
                    if (nullCount >= 12) {
                         parent->setBPM(0); // 12 according to the docs
                         value2 = value = 0;
                     }
+               }
+
+               // R-R
+               // If HRM send both lastMeasurementTime and prevMeasurementTime
+               // use that. Otherwise fall back to using lastMeasurementTime
+               // from previous message if the number of heartbeats has increased
+               // by one.
+               uint16_t rrtime = 0;
+               if (antMessage.lastMeasurementTime != 0 && // Both last- and prevMeasTime should be set
+                   antMessage.prevMeasurementTime != 0 &&
+                   antMessage.heartrateBeats != lastMessage.heartrateBeats) { // It's a new measurement
+
+                   // rollover works because using unsigned 16bit arithmetic
+                   rrtime = uint16_t(antMessage.lastMeasurementTime - antMessage.prevMeasurementTime);
+               } else if (antMessage.lastMeasurementTime != 0 && // non-zero is a must !
+                   ((antMessage.heartrateBeats == lastMessage.heartrateBeats+1) || // incremental
+                    (antMessage.heartrateBeats == 0 && lastMessage.heartrateBeats == 255))) { // rollover
+
+
+                    if (lastHRmeasurement) {
+                        // rollover works because using unsigned 16bit arithmetic
+                        rrtime = antMessage.lastMeasurementTime - lastHRmeasurement;
+                    }
+
+                    // for next time
+                    lastHRmeasurement = antMessage.lastMeasurementTime;
+               }
+               if (rrtime != 0) {
+                   // convert to millisecs to 1/1024th of secs
+                   double rrmsecs = rrtime;
+                   rrmsecs = rrmsecs * 1000.00 / 1024.00;
+                   emit rrData(rrmsecs, antMessage.heartrateBeats, antMessage.instantHeartrate);
                }
            }
            break;

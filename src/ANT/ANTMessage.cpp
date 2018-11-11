@@ -20,8 +20,6 @@
 #include "ANT.h"
 #include <QDebug>
 
-//static uint16_t mtlast=0;
-
 //
 // This ANTMessage class is to decode and Encode ANT Messages
 //
@@ -364,23 +362,49 @@ ANTMessage::ANTMessage(ANT *parent, const unsigned char *message) {
             // we need to handle ant sport messages here
             switch(parent->antChannel[message[3]]->channel_type) {
 
-            // Heartrate is fairly simple. Although
-            // many older heart rate devices do not support
-            // multiple data pages, and provide random values
-            // for the data page itself. (E.g. 1st Gen GARMIN)
-            // since we do not care hugely about operating time
-            // and serial numbers etc, we don't even try
             case ANTChannel::CHANNEL_TYPE_HR:
-                channel = message[3];
-                measurementTime = message[8] + (message[9]<<8);
-                heartrateBeats =  message[10];
+            {
+
+                // page no is first 7 bits, page change toggle is bit 8
+                bool page_toggle = data_page&128;
+                data_page &= 127;
+
+                // Heartrate is fairly simple. Although
+                // many older heart rate devices do not support
+                // multiple data pages, and provide random values
+                // for the data page itself. (E.g. 1st Gen GARMIN)
+                // since we do not care hugely about operating time
+                // and serial numbers etc, we don't even try for
+                // instant heartrate
                 instantHeartrate = message[11];
+                heartrateBeats =  message[10];
 
-                //if (measurementTime - mtlast)
-                //qDebug()<<"measurement"<<(measurementTime-mtlast)<<"hr="<<instantHeartrate<<"beats="<<heartrateBeats;
-                //mtlast = measurementTime;
+                // but for R-R timing for HRV applications we will
+                // insist upon page 0 or page 4 being present
+                switch (data_page) {
+                case 0:
+                    {
+                        // Page 0 only contains time of last heartbeat
+                        // so propagate that and
+                        lastMeasurementTime = message[8] + (message[9]<<8);
+                    }
                 break;
+                case 4:
+                    {
+                        // Page 4 contains both time of last heartbeat and
+                        // the time of the previous one.
+                        lastMeasurementTime = message[8] + (message[9]<<8);
+                        prevMeasurementTime = message[6] + (message[7]<<8);
+                    }
+                    break;
 
+                default:
+                    // ignore
+                    lastMeasurementTime = 0;
+                    break;
+                }
+            }
+            break;
 /*
  * these are not supported at present:
  * power         calibration_request None,channel,0x01,0xAA,None,None,None,None,None,None
@@ -809,7 +833,8 @@ void ANTMessage::init()
     data_page = frequency = deviceType = transmitPower = searchTimeout = 0;
     transmissionType = networkNumber = channelType = channel = 0;
     channelPeriod = deviceNumber = 0;
-    wheelMeasurementTime = crankMeasurementTime = measurementTime = 0;
+    wheelMeasurementTime = crankMeasurementTime = lastMeasurementTime = 0;
+    prevMeasurementTime = 0;
     instantHeartrate = heartrateBeats = 0;
     eventCount = 0;
     wheelRevolutions = crankRevolutions = 0;

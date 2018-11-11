@@ -409,8 +409,8 @@ contains(DEFINES, "GC_WANT_R") {
     LIBS        += $${ICAL_LIBS}
 
     # add caldav and diary functions
-    HEADERS     += Core/ICalendar.h Charts/DiaryWindow.h Cloud/CalDAV.h
-    SOURCES     += Core/ICalendar.cpp Charts/DiaryWindow.cpp Cloud/CalDAV.cpp
+    HEADERS     += Core/ICalendar.h Charts/DiaryWindow.h Cloud/CalDAV.h Cloud/CalDAVCloud.h
+    SOURCES     += Core/ICalendar.cpp Charts/DiaryWindow.cpp Cloud/CalDAV.cpp Cloud/CalDAVCloud.cpp
 }
 
 
@@ -632,6 +632,8 @@ greaterThan(QT_MAJOR_VERSION, 4) {
     HEADERS += Train/Kettler.h Train/KettlerController.h Train/KettlerConnection.h
     SOURCES += Train/KettlerRacer.cpp Train/KettlerRacerController.cpp Train/KettlerRacerConnection.cpp
     HEADERS += Train/KettlerRacer.h Train/KettlerRacerController.h Train/KettlerRacerConnection.h
+    SOURCES += Train/DaumController.cpp Train/Daum.cpp
+    HEADERS += Train/DaumController.h Train/Daum.h
 
     # bluetooth in QT5.5 or higher(5.4 was only a tech preview)
     greaterThan(QT_MINOR_VERSION, 4) {
@@ -693,7 +695,7 @@ HEADERS += Charts/Aerolab.h Charts/AerolabWindow.h Charts/AllPlot.h Charts/AllPl
 }
 
 # cloud services
-HEADERS += Cloud/BodyMeasuresDownload.h Cloud/CalDAVCloud.h Cloud/CalendarDownload.h Cloud/CloudService.h \
+HEADERS += Cloud/BodyMeasuresDownload.h Cloud/CalendarDownload.h Cloud/CloudService.h \
            Cloud/LocalFileStore.h Cloud/OAuthDialog.h Cloud/TodaysPlanBodyMeasures.h \
            Cloud/WithingsDownload.h Cloud/Strava.h Cloud/CyclingAnalytics.h Cloud/RideWithGPS.h \
            Cloud/TrainingsTageBuch.h Cloud/Selfloops.h Cloud/Velohero.h Cloud/SportsPlusHealth.h \
@@ -733,7 +735,7 @@ HEADERS += Gui/AboutDialog.h Gui/AddIntervalDialog.h Gui/AnalysisSidebar.h Gui/C
 
 # metrics and models
 HEADERS += Metrics/CPSolver.h Metrics/Estimator.h Metrics/ExtendedCriticalPower.h Metrics/HrZones.h Metrics/PaceZones.h Metrics/PDModel.h \
-           Metrics/PMCData.h Metrics/RideMetadata.h Metrics/RideMetric.h Metrics/SpecialFields.h Metrics/Statistic.h \
+           Metrics/PMCData.h Metrics/PowerProfile.h Metrics/RideMetadata.h Metrics/RideMetric.h Metrics/SpecialFields.h Metrics/Statistic.h \
            Metrics/UserMetricParser.h Metrics/UserMetricSettings.h Metrics/VDOTCalculator.h Metrics/WPrime.h Metrics/Zones.h
 
 ## Planning and Compliance
@@ -787,7 +789,7 @@ SOURCES += Charts/Aerolab.cpp Charts/AerolabWindow.cpp Charts/AllPlot.cpp Charts
 }
 
 ## Cloud Services / Web resources
-SOURCES += Cloud/BodyMeasuresDownload.cpp Cloud/CalDAVCloud.cpp Cloud/CalendarDownload.cpp Cloud/CloudService.cpp \
+SOURCES += Cloud/BodyMeasuresDownload.cpp Cloud/CalendarDownload.cpp Cloud/CloudService.cpp \
            Cloud/LocalFileStore.cpp Cloud/OAuthDialog.cpp Cloud/TodaysPlanBodyMeasures.cpp \
            Cloud/WithingsDownload.cpp Cloud/Strava.cpp Cloud/CyclingAnalytics.cpp Cloud/RideWithGPS.cpp \
            Cloud/TrainingsTageBuch.cpp Cloud/Selfloops.cpp Cloud/Velohero.cpp Cloud/SportsPlusHealth.cpp \
@@ -832,8 +834,9 @@ SOURCES += Gui/AboutDialog.cpp Gui/AddIntervalDialog.cpp Gui/AnalysisSidebar.cpp
 SOURCES += Metrics/aBikeScore.cpp Metrics/aCoggan.cpp Metrics/AerobicDecoupling.cpp Metrics/BasicRideMetrics.cpp Metrics/BikeScore.cpp \
            Metrics/Coggan.cpp Metrics/CPSolver.cpp Metrics/DanielsPoints.cpp Metrics/Estimator.cpp Metrics/ExtendedCriticalPower.cpp \
            Metrics/GOVSS.cpp Metrics/HrTimeInZone.cpp Metrics/HrZones.cpp Metrics/LeftRightBalance.cpp Metrics/PaceTimeInZone.cpp \
-           Metrics/PaceZones.cpp Metrics/PDModel.cpp Metrics/PeakPace.cpp Metrics/PeakPower.cpp Metrics/PeakHr.cpp Metrics/PMCData.cpp Metrics/RideMetadata.cpp \
-           Metrics/RideMetric.cpp Metrics/RunMetrics.cpp Metrics/SwimMetrics.cpp Metrics/SpecialFields.cpp Metrics/Statistic.cpp Metrics/SustainMetric.cpp Metrics/SwimScore.cpp \
+           Metrics/PaceZones.cpp Metrics/PDModel.cpp Metrics/PeakPace.cpp Metrics/PeakPower.cpp Metrics/PeakHr.cpp Metrics/PMCData.cpp \
+           Metrics/PowerProfile.cpp Metrics/RideMetadata.cpp Metrics/RideMetric.cpp Metrics/RunMetrics.cpp Metrics/SwimMetrics.cpp \
+           Metrics/SpecialFields.cpp Metrics/Statistic.cpp Metrics/SustainMetric.cpp Metrics/SwimScore.cpp \
            Metrics/TimeInZone.cpp Metrics/TRIMPPoints.cpp Metrics/UserMetric.cpp Metrics/UserMetricParser.cpp Metrics/VDOTCalculator.cpp \
            Metrics/VDOT.cpp Metrics/WattsPerKilogram.cpp Metrics/WPrime.cpp Metrics/Zones.cpp Metrics/HrvMetrics.cpp
 

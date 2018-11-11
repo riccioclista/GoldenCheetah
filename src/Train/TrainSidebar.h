@@ -202,6 +202,9 @@ class TrainSidebar : public GcWindow
         // slot for receiving remote control commands
         void remoteControl(uint16_t);
 
+        // HRV R-R data being saved away
+        void rrData(uint16_t  rrtime, uint8_t heartrateBeats, uint8_t instantHeartrate);
+
     protected:
 
         friend class ::MultiDeviceDialog;
@@ -264,6 +267,7 @@ class TrainSidebar : public GcWindow
         int displaymode;
 
         QFile *recordFile;      // where we record!
+        QFile *rrFile;          // r-r records, if any received.
         ErgFile *ergFile;       // workout file
         VideoSyncFile *videosyncFile;       // videosync file
 

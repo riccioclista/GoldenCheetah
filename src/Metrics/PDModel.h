@@ -33,7 +33,7 @@
 //
 // 1. setData is used to provide 'bests' power data in 1s intervals
 //
-// 2. PDModels can be used as a data provider to a QwtPlotCurve 
+// 2. PDModels can be used as a data provider to a QwtPlotCurve
 //    since (QwtPlotCurve::setData(*QwtSyntheticPointData)
 //    the data is returned via double y(double x) const which
 //    the sub-classes must implement
@@ -99,7 +99,6 @@ class PDModel : public QObject, public QwtSyntheticPointData
     Q_OBJECT
 
     public:
-
 
         enum fittype { Envelope=0,                 // envelope fit
                        LeastSquares=1,             // uses Levenberg-Marquardt Damped Least Squares
@@ -178,7 +177,6 @@ class PDModel : public QObject, public QwtSyntheticPointData
 
         // calculate the fit summary
         void calcSummary();
-
         QString fitsummary;
 
     protected:
@@ -489,4 +487,4 @@ class ExtendedModel : public PDModel
         void deriveExtCPParameters();
 };
 
-#endif 
+#endif

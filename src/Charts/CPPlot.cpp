@@ -23,6 +23,7 @@
 #include "Zones.h"
 #include "Colors.h"
 #include "CPPlot.h"
+#include "PowerProfile.h"
 #include "RideCache.h"
 
 #include <QDebug>
@@ -151,7 +152,7 @@ CPPlot::setAxisTitle(int axis, QString label)
 
 // change the date range for the 'bests' curve
 void
-CPPlot::setDateRange(const QDate &start, const QDate &end)
+CPPlot::setDateRange(const QDate &start, const QDate &end, bool stale)
 {
 
     // wipe out current - calculate will reinstate
@@ -160,7 +161,7 @@ CPPlot::setDateRange(const QDate &start, const QDate &end)
 
     // check they actually changed, to avoid ridefilecache aggregation
     // which is an expensive function
-    if (startDate != istart || endDate != iend) {
+    if (startDate != istart || endDate != iend || stale) {
 
         startDate = istart;
         endDate = iend;
@@ -726,29 +727,28 @@ CPPlot::updateModelHelper()
     if (criticalSeries == CriticalPowerWindow::work || rideSeries == RideFile::watts || rideSeries == RideFile::aPower) {
 
         // Reset Rank
-        cpw->titleRank->setText(tr("Rank"));
+        cpw->titleRank->setText(tr("Percentile"));
 
         //WPrime
         cpw->wprimeTitle->setText(tr("W'"));
-        if (pdModel->hasWPrime()) cpw->wprimeValue->setText(QString(tr("%1 kJ")).arg(pdModel->WPrime() / 1000.0, 0, 'f', 1));
-        else cpw->wprimeValue->setText(tr("n/a"));
+        if (pdModel->hasWPrime()) {
+            cpw->wprimeValue->setText(QString(tr("%1 kJ")).arg(pdModel->WPrime() / 1000.0, 0, 'f', 1));
+            cpw->wprimeRank->setText(PowerProfile::rank(PowerProfile::abs_w,pdModel->WPrime()));
+        } else {
+            cpw->wprimeValue->setText("");
+            cpw->wprimeRank->setText("");
+        }
 
         //CP
         cpw->cpTitle->setText(tr("CP"));
         cpw->cpValue->setText(QString(tr("%1 w")).arg(pdModel->CP(), 0, 'f', 0));
-        cpw->cpRank->setText(tr("n/a"));
+        cpw->cpRank->setText(PowerProfile::rank(PowerProfile::abs_cp,pdModel->CP()));
 
         // P-MAX and P-MAX ranking
         cpw->pmaxTitle->setText(tr("Pmax"));
         if (pdModel->hasPMax()) {
             cpw->pmaxValue->setText(QString(tr("%1 w")).arg(pdModel->PMax(), 0, 'f', 0));
-
-            // Reference 22.5W/kg -> untrained 8W/kg
-            int _pMaxLevel = 15 * (pdModel->PMax() / context->athlete->getWeight(QDate::currentDate()) - 8) / (23-8) ;
-            if (_pMaxLevel > 0 && _pMaxLevel < 16) // check bounds
-                cpw->pmaxRank->setText(QString("%1").arg(_pMaxLevel));
-            else
-                cpw->pmaxRank->setText(tr("n/a"));
+            cpw->pmaxRank->setText(PowerProfile::rank(PowerProfile::abs_pmax, pdModel->PMax()));
 
         } else  {
             cpw->pmaxValue->setText(tr("n/a"));
@@ -763,29 +763,29 @@ CPPlot::updateModelHelper()
     } else if (rideSeries == RideFile::wattsKg || rideSeries == RideFile::aPowerKg) {
 
         // Reset Rank
-        cpw->titleRank->setText(tr("Rank"));
+        cpw->titleRank->setText(tr("Percentile"));
 
         //WPrime
         cpw->wprimeTitle->setText(tr("W'"));
-        if (pdModel->hasWPrime()) cpw->wprimeValue->setText(QString(tr("%1 J/kg")).arg(pdModel->WPrime(), 0, 'f', 0));
-        else cpw->wprimeValue->setText(tr("n/a"));
+        if (pdModel->hasWPrime()) {
+            cpw->wprimeValue->setText(QString(tr("%1 J/kg")).arg(pdModel->WPrime(), 0, 'f', 0));
+            cpw->wprimeRank->setText(PowerProfile::rank(PowerProfile::wpk_w,pdModel->WPrime()));
+        } else {
+            cpw->wprimeValue->setText(tr("n/a"));
+            cpw->wprimeRank->setText(tr("n/a"));
+        }
 
         //CP
         cpw->cpTitle->setText(tr("CP"));
         cpw->cpValue->setText(QString(tr("%1 w/kg")).arg(pdModel->CP(), 0, 'f', 2));
-        cpw->cpRank->setText(tr("n/a"));
+        cpw->cpRank->setText(PowerProfile::rank(PowerProfile::wpk_cp, pdModel->CP()));
 
         // P-MAX and P-MAX ranking
         cpw->pmaxTitle->setText(tr("Pmax"));
         if (pdModel->hasPMax()) {
             cpw->pmaxValue->setText(QString(tr("%1 w/kg")).arg(pdModel->PMax(), 0, 'f', 2));
+            cpw->pmaxRank->setText(PowerProfile::rank(PowerProfile::wpk_pmax, pdModel->PMax()));
 
-            // Reference 22.5W/kg -> untrained 8W/kg
-            int _pMaxLevel = 15 * (pdModel->PMax() - 8) / (23-8) ;
-            if (_pMaxLevel > 0 && _pMaxLevel < 16) // check bounds
-                cpw->pmaxRank->setText(QString("%1").arg(_pMaxLevel));
-            else
-                cpw->pmaxRank->setText(tr("n/a"));
         } else  {
             cpw->pmaxValue->setText(tr("n/a"));
             cpw->pmaxRank->setText(tr("n/a"));
@@ -1098,10 +1098,10 @@ CPPlot::plotTests(RideItem *rideitem)
                         test->setSymbol(sym);
                         test->setValue(duration/60.00f, watts);
 
-                        QString desc = QString("%3\n%1%4\n%2").arg(watts,0, 'f', rideSeries == RideFile::watts ? 0 : 2)
+                        QString desc = QString("%3\n%1 %4\n%2").arg(watts,0, 'f', rideSeries == RideFile::watts ? 0 : 2)
                                                              .arg(interval_to_str(duration))
                                                              .arg(interval->name)
-                                                             .arg(RideFile::unitName(rideSeries, context));
+                                                             .arg(criticalSeries == CriticalPowerWindow::work ? tr("kJ") : RideFile::unitName(rideSeries, context));
                         QwtText text(desc);
                         QFont font; // default
                         font.setPointSize(8);
