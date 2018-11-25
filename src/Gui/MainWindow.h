@@ -234,6 +234,14 @@ class MainWindow : public QMainWindow
         // autoload rides from athlete specific directory (preferences)
         void ridesAutoImport();
 
+#ifdef GC_WANT_PYTHON
+        // Python fix scripts
+        void onEditMenuAboutToShow();
+        void buildPyFixesMenu();
+        void showManageFixPyScriptsDlg();
+        void showCreateFixPyScriptDlg();
+#endif
+
 #ifdef GC_HAS_CLOUD_DB
         // CloudDB actions
         void cloudDBuserEditChart();
@@ -301,6 +309,9 @@ class MainWindow : public QMainWindow
         // Miscellany
         QSignalMapper *toolMapper;
 
+#ifdef GC_WANT_PYTHON
+        QMenu *pyFixesMenu;
+#endif
 
 #ifdef GC_HAS_CLOUD_DB
         CloudDBVersionClient *versionClient;

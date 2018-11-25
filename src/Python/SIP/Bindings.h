@@ -1,6 +1,7 @@
 #include <QString>
 #include "RideFile.h"
 #include "RideFileCache.h"
+#include "RideFileCommand.h"
 
 #undef slots
 #include <Python.h>
@@ -9,6 +10,7 @@
 class PythonDataSeries {
 
     public:
+        PythonDataSeries(QString name, Py_ssize_t count, bool readOnly, RideFile::SeriesType seriesType, RideFile *rideFile);
         PythonDataSeries(QString name, Py_ssize_t count);
         PythonDataSeries(PythonDataSeries*);
         PythonDataSeries();
@@ -17,6 +19,10 @@ class PythonDataSeries {
         QString name;
         Py_ssize_t count;
         double *data;
+
+        bool readOnly;
+        int seriesType;
+        RideFile *rideFile;
 };
 
 class Bindings {
@@ -66,9 +72,14 @@ class Bindings {
         PyObject* seasonIntervals(QString type=QString(), bool compare=false) const;
         PyObject* activityIntervals(QString type=QString(), PyObject* activity=NULL) const;
 
+        // editing data
+        bool deleteActivitySample(int index = -1, PyObject *activity = NULL) const;
+        bool deleteSeries(int type, PyObject *activity = NULL) const;
+        bool postProcess(QString processor, PyObject *activity = NULL) const;
     private:
         // find a RideItem by DateTime
         RideItem* fromDateTime(PyObject* activity=NULL) const;
+        RideFile *selectRideFile(PyObject *activity = nullptr) const;
 
         // get a dict populated with metrics and metadata
         PyObject* activityMetrics(RideItem* item) const;

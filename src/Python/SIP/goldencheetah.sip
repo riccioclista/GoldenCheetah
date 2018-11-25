@@ -99,6 +99,27 @@ public:
             sipError = sipErrorFail;
         }
         %End
+    void __setitem__(long, double);
+        %MethodCode
+        if (sipCpp->readOnly) {
+            PyErr_SetString(PyExc_AttributeError, "Object is read-only");
+            sipError = sipErrorFail;
+        } else {
+            if (a0 < 0) a0 += sipCpp->count;
+            if (a0 >= 0 && a0 < sipCpp->count) {
+                sipCpp->data[a0] = a1;
+                RideFile *rideFile = sipCpp->rideFile;
+                if (rideFile) {
+                    RideFile::SeriesType seriesType = static_cast<RideFile::SeriesType>(sipCpp->seriesType);
+                    rideFile->command->setPointValue(a0, seriesType, a1);
+                    if (!rideFile->isDataPresent(seriesType)) rideFile->command->setDataPresent(seriesType, true);
+                }
+            } else {
+                PyErr_SetString(PyExc_IndexError, "Index out of range");
+                sipError = sipErrorFail;
+            }
+        }
+        %End
 };
 
 //
@@ -156,5 +177,10 @@ public:
     // working with intervals
     PyObject* seasonIntervals(QString type=QString(), bool compare=false) /TransferBack/;
     PyObject* activityIntervals(QString type=QString(), PyObject* activity=NULL) /TransferBAck/;
+
+    // editing data
+    bool deleteActivitySample(int index = -1, PyObject *activity = NULL) const;
+    bool deleteSeries(int type, PyObject *activity = NULL) const;
+    bool postProcess(QString processor, PyObject *activity = NULL) const;
 };
 
