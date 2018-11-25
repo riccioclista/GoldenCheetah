@@ -38,6 +38,7 @@
 #include <qwt_scale_widget.h>
 #include <qwt_scale_div.h>
 #include <qwt_color_map.h>
+#include <qwt_curve_fitter.h>
 #include <algorithm> // for std::lower_bound
 
 #include "CriticalPowerWindow.h"
@@ -65,7 +66,7 @@ CPPlot::CPPlot(CriticalPowerWindow *parent, Context *context, bool rangemode) : 
     rideSeries(RideFile::watts),
     isFiltered(false), shadeMode(2),
     shadeIntervals(true), rangemode(rangemode), 
-    showTest(true), showBest(true), filterBest(false), showPercent(false), showHeat(false), showHeatByDate(false), showDelta(false), showDeltaPercent(false),
+    showTest(true), showBest(true), filterBest(false), showPercent(false), showHeat(false), showPP(false), showHeatByDate(false), showDelta(false), showDeltaPercent(false),
     plotType(0),
     xAxisLinearOnSpeed(true),
 
@@ -713,7 +714,15 @@ CPPlot::plotModel()
     // Pmax is often higher than the test values (they're for
     // 3-20 mins typically so well short of pmax).
     if (!showDelta && rideSeries == RideFile::watts && pdModel && pdModel->PMax() > ymax) {
-        if (pdModel->PMax() > ymax) setAxisScale(yLeft, 0, pdModel->PMax() * 1.1f);
+        if (pdModel->PMax() > ymax) setAxisScale(yLeft, 0, (ymax=pdModel->PMax() * 1.1f));
+    }
+
+    // if we're showing the power profile, must be at least 1500
+    if (ymax < 20 && showPP && rideSeries == RideFile::wattsKg) {
+        setAxisScale(yLeft, 0, (ymax=20));
+    }
+    if (ymax < 1500 && showPP && rideSeries == RideFile::watts) {
+        setAxisScale(yLeft, 0, (ymax=1500));
     }
 }
 
@@ -733,7 +742,7 @@ CPPlot::updateModelHelper()
         cpw->wprimeTitle->setText(tr("W'"));
         if (pdModel->hasWPrime()) {
             cpw->wprimeValue->setText(QString(tr("%1 kJ")).arg(pdModel->WPrime() / 1000.0, 0, 'f', 1));
-            cpw->wprimeRank->setText(PowerProfile::rank(PowerProfile::abs_w,pdModel->WPrime()));
+            cpw->wprimeRank->setText(PowerPercentile::rank(PowerPercentile::abs_w,pdModel->WPrime()));
         } else {
             cpw->wprimeValue->setText("");
             cpw->wprimeRank->setText("");
@@ -742,13 +751,13 @@ CPPlot::updateModelHelper()
         //CP
         cpw->cpTitle->setText(tr("CP"));
         cpw->cpValue->setText(QString(tr("%1 w")).arg(pdModel->CP(), 0, 'f', 0));
-        cpw->cpRank->setText(PowerProfile::rank(PowerProfile::abs_cp,pdModel->CP()));
+        cpw->cpRank->setText(PowerPercentile::rank(PowerPercentile::abs_cp,pdModel->CP()));
 
         // P-MAX and P-MAX ranking
         cpw->pmaxTitle->setText(tr("Pmax"));
         if (pdModel->hasPMax()) {
             cpw->pmaxValue->setText(QString(tr("%1 w")).arg(pdModel->PMax(), 0, 'f', 0));
-            cpw->pmaxRank->setText(PowerProfile::rank(PowerProfile::abs_pmax, pdModel->PMax()));
+            cpw->pmaxRank->setText(PowerPercentile::rank(PowerPercentile::abs_pmax, pdModel->PMax()));
 
         } else  {
             cpw->pmaxValue->setText(tr("n/a"));
@@ -769,7 +778,7 @@ CPPlot::updateModelHelper()
         cpw->wprimeTitle->setText(tr("W'"));
         if (pdModel->hasWPrime()) {
             cpw->wprimeValue->setText(QString(tr("%1 J/kg")).arg(pdModel->WPrime(), 0, 'f', 0));
-            cpw->wprimeRank->setText(PowerProfile::rank(PowerProfile::wpk_w,pdModel->WPrime()));
+            cpw->wprimeRank->setText(PowerPercentile::rank(PowerPercentile::wpk_w,pdModel->WPrime()));
         } else {
             cpw->wprimeValue->setText(tr("n/a"));
             cpw->wprimeRank->setText(tr("n/a"));
@@ -778,13 +787,13 @@ CPPlot::updateModelHelper()
         //CP
         cpw->cpTitle->setText(tr("CP"));
         cpw->cpValue->setText(QString(tr("%1 w/kg")).arg(pdModel->CP(), 0, 'f', 2));
-        cpw->cpRank->setText(PowerProfile::rank(PowerProfile::wpk_cp, pdModel->CP()));
+        cpw->cpRank->setText(PowerPercentile::rank(PowerPercentile::wpk_cp, pdModel->CP()));
 
         // P-MAX and P-MAX ranking
         cpw->pmaxTitle->setText(tr("Pmax"));
         if (pdModel->hasPMax()) {
             cpw->pmaxValue->setText(QString(tr("%1 w/kg")).arg(pdModel->PMax(), 0, 'f', 2));
-            cpw->pmaxRank->setText(PowerProfile::rank(PowerProfile::wpk_pmax, pdModel->PMax()));
+            cpw->pmaxRank->setText(PowerPercentile::rank(PowerPercentile::wpk_pmax, pdModel->PMax()));
 
         } else  {
             cpw->pmaxValue->setText(tr("n/a"));
@@ -858,7 +867,7 @@ class DeltaModel : public QwtSyntheticPointData
 };
 
 // in compare mode we can plot models and compare them...
-void 
+void
 CPPlot::plotModel(QVector<double> vector, QColor plotColor, PDModel *baseline)
 {
     // first lets clear any curves we shouldn't be displaying
@@ -970,6 +979,11 @@ CPPlot::clearCurves()
     if (allZoneLabels.size()) {
         foreach (QwtPlotMarker *label, allZoneLabels) delete label;
         allZoneLabels.clear();
+    }
+
+    if (profileCurves.count()) {
+        foreach (QwtPlotCurve *curve, profileCurves) delete curve;
+        profileCurves.clear();
     }
 
     // heat curves
@@ -1128,6 +1142,45 @@ CPPlot::plotTests(RideItem *rideitem)
     }
 }
 
+// plot the power profile curves
+void
+CPPlot::plotPowerProfile()
+{
+    // lots of reasons not to !
+    if ((rideSeries != RideFile::watts && rideSeries != RideFile::wattsKg)  || showPP == false || profileCurves.count()) return;
+
+    // plot the power profile curves
+    struct PowerProfile *p = rideSeries == RideFile::watts ? &powerProfile : &powerProfileWPK;
+    foreach (double percentile, p->percentiles) {
+
+        // for now we don't bother with upper and lower bounds
+        //if (percentile > 95 || percentile < 5) continue;
+
+        QwtPlotCurve *curve = new QwtPlotCurve("");
+        if (appsettings->value(this, GC_ANTIALIAS, true).toBool() == true) curve->setRenderHint(QwtPlotItem::RenderAntialiased);
+        curve->setStyle(QwtPlotCurve::Lines);
+
+        QColor color;
+        if (percentile > 95 || percentile < 5) color = GColor(CPLOTGRID);
+        else if (percentile < 51 && percentile > 49) {
+            color = GColor(CPLOTGRID);
+            color.setRed(color.red() + 30);
+        } else {
+            color = GColor(CPLOTGRID);
+            color.setBlue(color.blue() + 50);
+        }
+
+        QPen gridpen(color);
+        gridpen.setWidthF(1.0 * dpiXFactor);
+        if (percentile > 51 || percentile < 49) gridpen.setStyle(Qt::DotLine);
+        curve->setCurveFitter(new QwtSplineCurveFitter());
+        curve->setPen(gridpen);
+        curve->setSamples(p->seconds.constData(), p->values.value(percentile).constData(), p->seconds.count());
+        curve->attach(this);
+        profileCurves << curve;
+    }
+}
+
 // plot the bests curve and refresh the data if needed too
 void
 CPPlot::plotBests(RideItem *rideItem)
@@ -1158,7 +1211,7 @@ CPPlot::plotBests(RideItem *rideItem)
     // we can only do shading of the bests curve
     // when we have power or speed and the user wants it to
     // be a rainbow curve. Otherwise its gonna be plain
-    int shadingCP = 0; 
+    int shadingCP = 0;
     double shadingRatio = 1.0;
     if ((rideSeries == RideFile::wattsKg || rideSeries == RideFile::watts || rideSeries == RideFile::aPowerKg || rideSeries == RideFile::aPower) && shadeMode) shadingCP = dateCP;
     if ((rideSeries == RideFile::wattsKg || rideSeries == RideFile::aPowerKg) && shadeMode) shadingRatio = context->athlete->getWeight(QDate::currentDate());
@@ -1496,7 +1549,7 @@ CPPlot::plotBests(RideItem *rideItem)
                     label_mark->attach(this);
                     allZoneLabels.append(label_mark);
                 }
-    
+
                 high = low;
                 ++zone;
             }
@@ -1638,15 +1691,22 @@ CPPlot::plotBests(RideItem *rideItem)
         // set ymax to nearest 100 if power
         int max = ymax * 1.1f;
         max = ((max/100) + 1) * 100;
+        if (rideSeries == RideFile::watts && showPP && max<1500) max=1500;
 
         setAxisScale(yLeft, 0, max);
-    }
-    else if (criticalSeries == CriticalPowerWindow::veloclinicplot) {
+
+    } else if (criticalSeries == CriticalPowerWindow::veloclinicplot) {
         setAxisScale(yLeft, 0, 1.5*pdModel->WPrime());
-    }
-    else if (criticalSeries == CriticalPowerWindow::vam) {
+
+    } else if (criticalSeries == CriticalPowerWindow::vam) {
         // VAM is very big anyway - so just 5% headroom
         setAxisScale(yLeft, 0, 1.05*ymax);
+
+    } else if (rideSeries == RideFile::wattsKg && showPP) {
+        ymax *= 1.1;
+        if (ymax<20) ymax = 20;
+        setAxisScale(yLeft, 0, ymax);
+
     } else {
 
         // or just add 10% headroom
@@ -1930,6 +1990,9 @@ CPPlot::setRide(RideItem *rideItem)
         plotBests(NULL);
     }
 
+    // plot the powerprofile
+    plotPowerProfile();
+
     // plot tests (in ride, or across date range)
     plotTests(rangemode ? NULL : rideItem);
 
@@ -2182,6 +2245,13 @@ void
 CPPlot::setShowHeat(bool x)
 {
     showHeat = x;
+    clearCurves();
+}
+
+void
+CPPlot::setShowPP(bool x)
+{
+    showPP = x;
     clearCurves();
 }
 
@@ -2819,13 +2889,21 @@ CPPlot::calculateForDateRanges(QList<CompareDateRange> compareDateRanges)
         int max = ymax * 1.1f;
         max = ((max/100) + 1) * 100;
 
+        if (showPP && max < 1500) max=1500;
         setAxisScale(yLeft, 0, max);
 
+    } else if (showPP && rideSeries == RideFile::wattsKg) {
+        ymax *=1.1;
+        if (ymax<20) ymax = 20;
+
+        setAxisScale(yLeft, 0, ymax);
     } else {
 
         // or just add 10% headroom
         setAxisScale(yLeft, ymin *1.1, 1.1*ymax);
     }
+
+    plotPowerProfile();
 
     // phew
     replot();
@@ -2962,14 +3040,24 @@ CPPlot::calculateForIntervals(QList<CompareInterval> compareIntervals)
         // set ymax to nearest 100 if power
         ymax = ymax * 1.1f;
         ymax = ((ymax/100) + 1) * 100;
+        if (showPP && ymax<1500) ymax=1500;
 
         setAxisScale(yLeft, ymin, ymax);
+
+    } else if (showPP && rideSeries == RideFile::wattsKg) {
+        ymax *=1.1;
+        if (ymax<20) ymax = 20;
+
+        setAxisScale(yLeft, 0, ymax);
 
     } else {
 
         // or just add 10% headroom
         setAxisScale(yLeft, ymin *1.1, 1.1*ymax);
     }
+
+    plotPowerProfile();
+
     replot();
 }
 
