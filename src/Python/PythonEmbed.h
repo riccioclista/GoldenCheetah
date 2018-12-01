@@ -38,9 +38,9 @@ class ScriptContext {
 
         ScriptContext(Context *context=NULL, RideItem *item=NULL, RideFile *rideFile = NULL,
                       const QHash<QString,RideMetric*> *metrics=NULL, Specification spec=Specification(),
-                      bool readOnly = true, QList<RideFile *> *editedRideFiles = NULL)
+                      bool readOnly = true, QList<RideFile *> *editedRideFiles = NULL, bool interactiveShell=false)
             : context(context), item(item), rideFile(rideFile), metrics(metrics), spec(spec),
-              readOnly(readOnly), editedRideFiles(editedRideFiles) {}
+              readOnly(readOnly), editedRideFiles(editedRideFiles), interactiveShell(interactiveShell) {}
 
         Context *context;
         RideItem *item;
@@ -50,6 +50,7 @@ class ScriptContext {
 
         bool readOnly;
         QList<RideFile *> *editedRideFiles;
+        bool interactiveShell;
 };
 
 // a plain C++ class, no QObject stuff
