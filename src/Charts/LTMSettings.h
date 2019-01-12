@@ -52,8 +52,10 @@ class RideBest;
 // 16        14 Aug 2015 Mark Liversedge  Added curve specific filter
 // 17        01 Nov 2017 Ale Martinez     Added Daily Measure type (Body/Hrv)
 // 18        14 Sep 2018 Riccio Clista    Added IgnoreZeros
+// 19        05 Jan 2018 Mark Liversedge  Performance tests and weekly performances
+// 20        07 Jan 2018 Mark Liversedge  Flagged as possibly submaximal weekly best
 
-#define LTM_VERSION_NUMBER 18
+#define LTM_VERSION_NUMBER 20
 
 // group by settings
 #define LTM_DAY     1
@@ -64,15 +66,17 @@ class RideBest;
 #define LTM_ALL     6
 
 // type of metric
-#define METRIC_DB        1
-#define METRIC_PM        2
-#define METRIC_META      3
-#define METRIC_MEASURE   4 // DEPRECATED DO NOT USE
-#define METRIC_BEST      5
-#define METRIC_ESTIMATE  6
-#define METRIC_STRESS    7
-#define METRIC_FORMULA   8
-#define METRIC_D_MEASURE 9
+#define METRIC_DB          1
+#define METRIC_PM          2
+#define METRIC_META        3
+#define METRIC_MEASURE     4 // DEPRECATED DO NOT USE
+#define METRIC_BEST        5
+#define METRIC_ESTIMATE    6
+#define METRIC_STRESS      7
+#define METRIC_FORMULA     8
+#define METRIC_D_MEASURE   9
+#define METRIC_PERFORMANCE 10
+#define METRIC_BANISTER    11
 
 // type of estimate
 #define ESTIMATE_WPRIME  0
@@ -97,6 +101,12 @@ class RideBest;
 #define STRESS_EXPECTED_SB  10
 #define STRESS_EXPECTED_RR  11
 
+// type of banister curve
+#define BANISTER_NTE         0
+#define BANISTER_PTE         1
+#define BANISTER_PERFORMANCE 2
+#define BANISTER_CP          3
+
 // type of values
 #define VALUES_CALCULATED   0
 #define VALUES_PLANNED      1
@@ -107,7 +117,7 @@ class MetricDetail {
     public:
 
     MetricDetail() : type(METRIC_DB), stack(false), hidden(false), model(""), formulaType(RideMetric::Average), name(""), 
-                     metric(NULL), stressType(0), measureGroup(0), measureField(0),
+                     metric(NULL), stressType(0), measureGroup(0), measureField(0), tests(true), perfs(true),
                      smooth(false), trendtype(0), topN(0), lowestN(0), topOut(0), baseline(0.0), 
                      curveStyle(QwtPlotCurve::Lines), symbolStyle(QwtSymbol::NoSymbol),
                      penColor(Qt::black), penAlpha(0), penWidth(1.0), penStyle(0),
@@ -147,6 +157,11 @@ class MetricDetail {
     // for DAILY MEASURES
     int measureGroup;   // 0-BODY 1-HRV
     int measureField;   // Weight, RMSSD, etc.
+
+    // for PERFORMANCES
+    bool tests;
+    bool perfs;
+    bool submax;
 
     // GENERAL SETTINGS FOR A METRIC
     QString uname, uunits; // user specified name and units (axis choice)

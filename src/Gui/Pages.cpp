@@ -372,6 +372,7 @@ GeneralPage::saveClicked()
     if (!embedPython->isChecked()) fixPySettings->disableFixPy();
 #endif
 
+
     qint32 state=0;
 
     // general stuff changed ?

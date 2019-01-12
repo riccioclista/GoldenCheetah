@@ -230,6 +230,9 @@ QDataStream &operator<<(QDataStream &out, const LTMSettings &settings)
         out<<metric.measureGroup;
         out<<metric.measureField;
         out<<metric.ignoreZeros;
+        out<<metric.tests;
+        out<<metric.perfs;
+        out<<metric.submax;
     }
     out<<settings.showData;
     out<<settings.stack;
@@ -362,6 +365,12 @@ while(counter-- && !in.atEnd()) {
         if (version >= 18) {
             in >> m.ignoreZeros;
         }
+        if (version >= 19) {
+            in >> m.tests;
+            in >> m.perfs;
+        }
+        if (version >= 20) in >> m.submax;
+
         bool keep=true;
         // check for deprecated things and set keep=false if
         // we don't support this any more !
