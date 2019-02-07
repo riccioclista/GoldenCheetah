@@ -230,6 +230,8 @@ LTMPlot::setData(LTMSettings *set)
     isolation = false;
     int user=0;
 
+    bool haveBanister=false; // do we want to show the banister helper?
+
     //qDebug()<<"Starting.."<<timer.elapsed();
 
     settings = set;
@@ -379,6 +381,9 @@ LTMPlot::setData(LTMSettings *set)
 
     foreach (MetricDetail metricDetail, settings->metrics) {
 
+        // if we have at least one banister curve visible then helper is relevant
+        if (metricDetail.hidden == false && metricDetail.type == METRIC_BANISTER) haveBanister=true;
+
         if (metricDetail.stack == true) {
 
             // register this data
@@ -444,7 +449,7 @@ LTMPlot::setData(LTMSettings *set)
         if (count <= 0) continue;
 
         // Create a curve
-        QwtPlotCurve *current = (metricDetail.type == METRIC_ESTIMATE || metricDetail.type == METRIC_BANISTER)
+        QwtPlotCurve *current = (metricDetail.type == METRIC_ESTIMATE || metricDetail.type == METRIC_BANISTER || metricDetail.type == METRIC_D_MEASURE)
                 ? new QwtPlotGappedCurve(metricDetail.uname, 1)
                 : new QwtPlotCurve(metricDetail.uname);
         current->setVisible(!metricDetail.hidden);
@@ -600,7 +605,7 @@ LTMPlot::setData(LTMSettings *set)
 
         // Create a curve
         QwtPlotCurve *current;
-        if (metricDetail.type == METRIC_ESTIMATE || metricDetail.type == METRIC_BANISTER) {
+        if (metricDetail.type == METRIC_ESTIMATE || metricDetail.type == METRIC_BANISTER || metricDetail.type == METRIC_D_MEASURE) {
             current = new QwtPlotGappedCurve(metricDetail.uname, 1);
         } else {
             if (metricDetail.ignoreZeros){
@@ -1382,6 +1387,9 @@ LTMPlot::setData(LTMSettings *set)
 
     // update colours etc for plot chrome will also save state
     configChanged(CONFIG_APPEARANCE);
+
+    // we have banister?
+    parent->showBanister(haveBanister);
 
     // plot
     replot();
@@ -3563,7 +3571,7 @@ LTMPlot::createBanisterData(Context *context, LTMSettings *settings, MetricDetai
                                               QVector<double>&x,QVector<double>&y,int&n, bool)
 {
     // banister model
-    Banister *banister = context->athlete->getBanisterFor(metricDetail.symbol, 0,0);
+    Banister *banister = context->athlete->getBanisterFor(metricDetail.symbol, 50,11);
 
     // should never happen...
     if (banister==NULL) {

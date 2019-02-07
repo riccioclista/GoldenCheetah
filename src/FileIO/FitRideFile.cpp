@@ -34,7 +34,7 @@
 #include <limits>
 #include <cmath>
 
-#define FIT_DEBUG               true // debug traces
+#define FIT_DEBUG               false // debug traces
 #define FIT_DEBUG_LEVEL         4    // debug level : 1 message, 2 definition, 3 data without record, 4 data
 
 #ifndef MATHCONST_PI
@@ -1347,7 +1347,7 @@ struct FitFileReaderState
         else
             iniTime = last_time;
 
-        time_t time = iniTime;
+        time_t time = 0;
         int i = 0;
         time_t this_start_time = 0;
         double total_distance = 0.0;
@@ -1418,6 +1418,11 @@ struct FitFileReaderState
                 default: ; // ignore it
             }
         }
+
+        if (time == 0 && total_elapsed_time > 0) {
+            time = iniTime + total_elapsed_time - 1;
+        }
+
         if (this_start_time == 0 || this_start_time-start_time < 0) {
             //errors << QString("lap %1 has invalid start time").arg(interval);
             this_start_time = start_time; // time was corrected after lap start
@@ -1426,10 +1431,7 @@ struct FitFileReaderState
                 errors << QString("lap %1 is ignored (invalid end time)").arg(interval);
                 return;
             }
-        }
-        if (time == iniTime && total_elapsed_time > 0) {
-            time = iniTime + total_elapsed_time - 1;
-        }
+        } 
 
         if (isLapSwim) {
             // Fill empty laps due to false starts or pauses in some devices
@@ -3326,7 +3328,10 @@ void write_session(QByteArray *array, const RideFile *ride, QHash<QString,RideMe
     write_int32(array, value, true);
 
     // 6. sport
-    write_int8(array, 2);
+    // Export as bike, run or swim, default sport is bike. 
+    // todo: support all sports based on tag "Sport"
+    int sport = ride->isRun() ? 1 : ride->isSwim() ? 5 : 2;
+    write_int8(array, sport);
 
     // 7. sub sport
     write_int8(array, 0);
@@ -3522,7 +3527,7 @@ void write_record_definition(QByteArray *array, const RideFile *ride, QMap<int, 
         num_fields ++;
         write_field_definition(fields, 3, 1, 2); // heart_rate (3)
     }
-    if ( withCad && ride->areDataPresent()->cad ) {
+    if ( withCad && (ride->areDataPresent()->cad || (ride->isRun() && ride->areDataPresent()->rcad)) ) {
         num_fields ++;
         write_field_definition(fields, 4, 1, 2); // cadence (4)
     }
@@ -3543,7 +3548,7 @@ void write_record_definition(QByteArray *array, const RideFile *ride, QMap<int, 
         num_fields ++;
         write_field_definition(fields, 13, 1, 2); // temperature (13)
     }
-    if ( (type&2)==1 ) {
+    if ( (type&2)==2 ) {
         num_fields ++;
         write_field_definition(fields, 30, 1, 2); // left_right_balance (30)
     }
@@ -3595,6 +3600,10 @@ void write_record(QByteArray *array, const RideFile *ride, bool withAlt, bool wi
         if ( withCad && ride->areDataPresent()->cad ) {
             write_int8(ridePoint, point->cad);
         }
+        // In runs, cadence is saved in 'rcad' instead of 'cad'
+        else if (withCad && ride->isRun() && ride->areDataPresent()->rcad){
+            write_int8(ridePoint, point->rcad);
+        }
         if ( ride->areDataPresent()->km ) {
             write_int32(ridePoint, point->km * 100000, true);
         }
@@ -3609,7 +3618,7 @@ void write_record(QByteArray *array, const RideFile *ride, bool withAlt, bool wi
         if ( (type&1)==1) {
             write_int8(ridePoint, point->temp);
         }
-        if ( (type&2)==1 ) {
+        if ( (type&2)==2 ) {
             write_int8(ridePoint, point->lrbalance);
         }
 
