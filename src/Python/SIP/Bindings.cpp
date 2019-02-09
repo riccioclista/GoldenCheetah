@@ -766,7 +766,12 @@ PythonDataSeries::PythonDataSeries() : name(QString()), count(0), data(NULL),
     readOnly(true), seriesType(RideFile::none), rideFile(NULL) {}
 PythonDataSeries::PythonDataSeries(PythonDataSeries *clone)
 {
-    *this = *clone;
+    if (clone) *this = *clone;
+    else {
+        name = QString();
+        count = 0;
+        data = NULL;
+    }
 }
 
 PythonDataSeries::~PythonDataSeries()
