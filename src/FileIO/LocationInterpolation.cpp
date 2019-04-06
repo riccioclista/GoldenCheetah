@@ -21,7 +21,7 @@
 static double radianstodegrees(double r) { return r * (360.0 / (2 * M_PI)); }
 static double degreestoradians(double d) { return d * (2 * M_PI / 360.0); }
 
-xyz geolocation::toxyz()
+xyz geolocation::toxyz() const
 {
     // Approach developed by:
     //
@@ -34,7 +34,7 @@ xyz geolocation::toxyz()
     //
     // D. Rose (2014).
     // "Converting between Earth-Centered, Earth Fixed and Geodetic Coordinates"
-    // 
+    //
 
     //Convert Lat, Lon, Altitude to Earth-Centered-Earth-Fixed (ECEF)
     //Input is a three element array containing lat, lon (rads) and alt (m)
@@ -52,7 +52,7 @@ xyz geolocation::toxyz()
     return(xyz(dx, dy, dz));                             //Return x, y, z in ECEF
 }
 
-geolocation xyz::togeolocation()
+geolocation xyz::togeolocation() const
 {
     // Approach developed by:
     // (Olson, D.K. (1996).
@@ -63,7 +63,7 @@ geolocation xyz::togeolocation()
     //
     // D. Rose (2014).
     // "Converting between Earth-Centered, Earth Fixed and Geodetic Coordinates"
-    // 
+    //
 
     //Convert Earth-Centered-Earth-Fixed (ECEF) to lat, Lon, Altitude
     //Input is a three element array containing x, y, z in meters
@@ -240,10 +240,10 @@ xyz UnitCatmullRomInterpolator3D::Interpolate(double frac)
 
 geolocation GeoPointInterpolator::Interpolate(double distance)
 {
-    return DistancePointInterpolator::Interpolate(distance).togeolocation();
+    return DistancePointInterpolator<SphericalTwoPointInterpolator>::Interpolate(distance).togeolocation();
 }
 
 void GeoPointInterpolator::Push(double distance, geolocation point)
 {
-    DistancePointInterpolator::Push(distance, point.toxyz());
+    DistancePointInterpolator<SphericalTwoPointInterpolator>::Push(distance, point.toxyz());
 }

@@ -16,8 +16,11 @@
 * Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#if !defined(_LOCATION_INTERPOLATION_H)
+#define _LOCATION_INTERPOLATION_H
+
 #include <tuple>
-#include <bitset>
+
 #include "qwt_math.h"
 
 struct geolocation;
@@ -29,6 +32,8 @@ class v3
 public:
 
     v3(double a, double b, double c) : m_t(a, b, c) {};
+
+    v3(const v3& o) : m_t(o.m_t) {}
 
     double  x() const { return std::get<0>(m_t); }
     double  y() const { return std::get<1>(m_t); }
@@ -76,10 +81,14 @@ struct xyz : public v3
     //    qDebug() << "< X:" << x() << " y:" << y() << " z:" << z() << " >";
     //}
 
-    geolocation togeolocation();
+    double DistanceFrom(const xyz& from) const {
+        return this->subtract(from).magnitude();
+    }
+
+    geolocation togeolocation() const;
 };
 
-struct geolocation : v3 
+struct geolocation : v3
 {
     double Lat()  const { return x(); }
     double Long() const { return y(); }
@@ -97,7 +106,23 @@ struct geolocation : v3
     //    qDebug() << "< Lat:" << Lat() << " Long:" << Long() << " Alt:" << Alt() << " >";
     //}
 
-    xyz toxyz();
+    xyz toxyz() const;
+
+    double DistanceFrom(const geolocation& from) const {
+        xyz x0 = from.toxyz();
+        xyz x1 = this->toxyz();
+
+        double dist = x1.subtract(x0).magnitude();
+
+        return dist;
+    }
+
+    bool IsReasonableGeoLocation () const {
+        return  (this->Lat() &&  this->Lat()  >= double(-90)  && this->Lat()  <= double(90) &&
+                 this->Long() && this->Long() >= double(-180) && this->Long() <= double(180) &&
+                 this->Alt() >= -1000 && this->Alt() < 10000);
+    }
+
 };
 
 // Class to wrap classic game spherical interpolation
@@ -139,12 +164,12 @@ struct LinearTwoPointInterpolator : public TwoPointInterpolator
     xyz InterpolateNext(xyz p0, xyz p1);
 };
 
-struct SphericalTwoPointInterpolator : public TwoPointInterpolator 
+struct SphericalTwoPointInterpolator : public TwoPointInterpolator
 {
     xyz InterpolateNext(xyz p0, xyz p1);
 };
 
-class UnitCatmullRomInterpolator 
+class UnitCatmullRomInterpolator
 {
     std::tuple<double, double, double, double> m_p;
 
@@ -156,7 +181,7 @@ public:
     double Interpolate(double u);
 };
 
-class UnitCatmullRomInterpolator3D 
+class UnitCatmullRomInterpolator3D
 {
     UnitCatmullRomInterpolator x, y, z;
 
@@ -168,11 +193,40 @@ public:
     xyz Interpolate(double frac);
 };
 
+// Visual studio has an error in how it compiles bitset that prevents
+// us from mixing it with qt headers >= 5.12.0. The toolchain error will
+// allegedly be fixed in vs2019 so roll our own for this very limited case.
+template <size_t T_bitsize> class MyBitset
+{
+    static_assert(T_bitsize <= 32, "T_bitsize must be <= 32.");
+    static_assert(T_bitsize >= 1,  "T_bitsize must be >= 1.");
+
+    unsigned m_mask;
+
+    unsigned popcnt(unsigned x) const {
+        x = x - ((x >> 1) & 0x55555555);
+        x = (x & 0x33333333) + ((x >> 2) & 0x33333333);  
+        return ((x + (x >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
+    }
+
+    void truncate() { m_mask &= (((unsigned)(-1 << (32 - T_bitsize))) >> (32 - T_bitsize)); }
+
+public:
+
+    MyBitset(unsigned m) : m_mask(m) {}
+    void reset()                           { m_mask = 0; }
+    bool test(unsigned u) const            { return ((m_mask >> u) & 1) != 0; }
+    void set(unsigned u)                   { m_mask |= (1 << u); truncate(); }
+    unsigned count() const                 { return popcnt(m_mask); }
+    MyBitset<T_bitsize>& operator <<=(unsigned u) { m_mask <<= u; truncate(); return (*this); }
+};
+
 // 4 element sliding window to hold interpolation points
 template <typename T> class SlidingWindow
 {
     std::tuple<T, T, T, T> m_Window;
-    std::bitset<4>         m_ElementExists;
+    MyBitset<4>            m_ElementExists;
+    //std::bitset<4>         m_ElementExists; // Visual studio error prevents bitset use alongside qtbase header.
 
 public:
 
@@ -428,6 +482,17 @@ public:
         return r;
     }
 
+    bool GetBracket(double &d0, double &d1)
+    {
+        if (!m_DistanceWindow.hasp0() || !m_DistanceWindow.hasp1())
+            return false;
+
+        d0 = m_DistanceWindow.p0();
+        d1 = m_DistanceWindow.p1();
+
+        return true;
+    }
+
     xyz Interpolate(double distance)
     {
         // Continue to advance queue after input is complete.
@@ -467,15 +532,152 @@ public:
 
         return m_Interpolator.Interpolate(frac);
     }
+
+private:
+
+    struct CalcSplineLengthBracketPair
+    {
+        double d0, d1;
+
+        CalcSplineLengthBracketPair() {}
+        CalcSplineLengthBracketPair(double a0, double a1) : d0(a0), d1(a1) {}
+    };
+
+    // A static sized (static sized/frame allocatable) worklist for pushing and popping stuffs.
+    template <typename T, int T_count> class CalcSplineLengthWorklist
+    {
+        static_assert(T_count > 0 && T_count <= 64, "Worklist element count must be within 1 and 64");
+
+        T m_worklist[T_count];
+        int m_idx; // points to first unused element in worklist
+
+    public:
+
+        CalcSplineLengthWorklist() : m_idx(0) {}
+
+        unsigned EmptySlots() const {
+            return T_count - m_idx;
+        }
+
+        bool Push(T rT) {
+            if (m_idx >= T_count)
+                return false;
+
+            m_worklist[m_idx] = rT;
+            m_idx++;
+            return true;
+        }
+
+        bool Pop(T& rT) {
+            if (m_idx == 0) return false;
+
+            m_idx--;
+            rT = m_worklist[m_idx];
+            return true;
+        }
+    };
+
+public:
+
+    //
+    // SplineLength: Estimate path distance across bracketed spline range.
+    //
+    // Estimation is necessary here because there is no closed form for length of cubic spline.
+    //
+    // Cubic spline has 4 control points. The interpolation is only valid within the middle 2 points.
+    // I call these middle two points the 'bracket'.
+    //
+    // Method takes two distances within the bracket and estimates the length of the spline that is
+    // interpolated between those two interpolated points.
+    //
+    // Estimation technique I use :
+    //
+    // 1 Break provided distance range into 3 equidistant distance ranges (4 distances)
+    // 2 Interpolate location for each of those 4 locations
+    // 3 Compute 'linear distance': the geometric distance from first to last location.
+    // 4 Compute 'quad distance': the sum of geometric distance between those 4 locations.
+    // 5 Examine ratio of linear distance / quad distance.
+    //   a If below threshold accumulate the summed quad distance
+    //   b If above threshold then push the 3 ranges onto worklist and goto 1
+    //
+    double SplineLength(double d0, double d1, double thresholdLimit = 0.000001)
+    {
+        double bracketStart, bracketEnd;
+
+        // Ensure:
+        // - bracket exists
+        // - requested range is within bracket
+        // - range is ordered
+        if (!this->GetBracket(bracketStart, bracketEnd)
+            || d0 < bracketStart
+            || d0 > bracketEnd
+            || d1 < bracketStart
+            || d1 > bracketEnd
+            || d0 > d1)
+        {
+            return 0.0;
+        }
+
+        double finalLength = 0.0;
+
+        static const unsigned s_worklistSize = 32;
+        CalcSplineLengthWorklist<CalcSplineLengthBracketPair, s_worklistSize> worklist;
+
+        // Push initial range for processing.
+        if (!worklist.Push(CalcSplineLengthBracketPair(d0, d1)))
+            return 0.0;
+
+        CalcSplineLengthBracketPair workitem;
+        while (worklist.Pop(workitem)) {
+            d0 = workitem.d0;
+            d1 = workitem.d1;
+
+            // Step 1
+            const double quarterspan = (d1 - d0) / 4;
+            const double inter0 = d0 + quarterspan;
+            const double inter1 = d0 + quarterspan + quarterspan;
+
+            // Step 2
+            const xyz pm1 = this->Interpolate(d0);
+            const xyz  p0 = this->Interpolate(inter0);
+            const xyz  p1 = this->Interpolate(inter1);
+            const xyz  p2 = this->Interpolate(d1);
+
+            // Step 3
+            double linearDistance = p2.DistanceFrom(pm1);
+            if (linearDistance == 0.0)
+                break;
+
+            // Step 4
+            double quadDistance = p2.DistanceFrom(p1) + p1.DistanceFrom(p0) + p0.DistanceFrom(pm1);
+
+            // Step 5
+            double difference = fabs(quadDistance / linearDistance) - 1.0;
+
+            // 5A: Settle for quaddistance if threshold met or no more room on worklist.
+            if (difference < thresholdLimit || worklist.EmptySlots() < 3) {
+                finalLength += quadDistance;
+            } else {
+                // 5B: otherwise push the 3 new subsegments onto worklist.
+                worklist.Push(CalcSplineLengthBracketPair(d0,     inter0));
+                worklist.Push(CalcSplineLengthBracketPair(inter0, inter1));
+                worklist.Push(CalcSplineLengthBracketPair(inter1, d1));
+            }
+        }
+
+        return finalLength;
+    }
 };
 
 class GeoPointInterpolator : public DistancePointInterpolator<SphericalTwoPointInterpolator>
 {
 public:
 
-    GeoPointInterpolator() : DistancePointInterpolator() {}
+    GeoPointInterpolator() : DistancePointInterpolator<SphericalTwoPointInterpolator>() {}
 
     geolocation Interpolate(double distance);
 
     void Push(double distance, geolocation point);
 };
+
+#endif
