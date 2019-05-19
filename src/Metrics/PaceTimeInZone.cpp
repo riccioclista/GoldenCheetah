@@ -335,10 +335,10 @@ class PaceZonePTime1 : public RideMetric {
         void compute(RideItem *, Specification, const QHash<QString,RideMetric*> &deps) {
 
             assert(deps.contains("time_in_zone_P1"));
-            assert(deps.contains("workout_time"));
+            assert(deps.contains("time_recording"));
 
             // compute
-            double time = deps.value("workout_time")->value(true);
+            double time = deps.value("time_recording")->value(true);
             double inzone = deps.value("time_in_zone_P1")->value(true);
 
             if (time && inzone) setValue((inzone / time) * 100.00);
@@ -346,6 +346,7 @@ class PaceZonePTime1 : public RideMetric {
             setCount(time);
         }
 
+        bool aggregateZero() const { return true; }
         bool canAggregate() { return false; }
         void aggregateWith(const RideMetric &) {}
     MetricClass classification() const { return Undefined; }
@@ -379,10 +380,10 @@ class PaceZonePTime2 : public RideMetric {
         void compute(RideItem *, Specification, const QHash<QString,RideMetric*> &deps) {
 
             assert(deps.contains("time_in_zone_P2"));
-            assert(deps.contains("workout_time"));
+            assert(deps.contains("time_recording"));
 
             // compute
-            double time = deps.value("workout_time")->value(true);
+            double time = deps.value("time_recording")->value(true);
             double inzone = deps.value("time_in_zone_P2")->value(true);
 
             if (time && inzone) setValue((inzone / time) * 100.00);
@@ -390,6 +391,7 @@ class PaceZonePTime2 : public RideMetric {
             setCount(time);
         }
 
+        bool aggregateZero() const { return true; }
         bool canAggregate() { return false; }
         void aggregateWith(const RideMetric &) {}
     MetricClass classification() const { return Undefined; }
@@ -423,10 +425,10 @@ class PaceZonePTime3 : public RideMetric {
         void compute(RideItem *, Specification, const QHash<QString,RideMetric*> &deps) {
 
             assert(deps.contains("time_in_zone_P3"));
-            assert(deps.contains("workout_time"));
+            assert(deps.contains("time_recording"));
 
             // compute
-            double time = deps.value("workout_time")->value(true);
+            double time = deps.value("time_recording")->value(true);
             double inzone = deps.value("time_in_zone_P3")->value(true);
 
             if (time && inzone) setValue((inzone / time) * 100.00);
@@ -434,6 +436,7 @@ class PaceZonePTime3 : public RideMetric {
             setCount(time);
         }
 
+        bool aggregateZero() const { return true; }
         bool canAggregate() { return false; }
         void aggregateWith(const RideMetric &) {}
     MetricClass classification() const { return Undefined; }
@@ -467,10 +470,10 @@ class PaceZonePTime4 : public RideMetric {
         void compute(RideItem *, Specification, const QHash<QString,RideMetric*> &deps) {
 
             assert(deps.contains("time_in_zone_P4"));
-            assert(deps.contains("workout_time"));
+            assert(deps.contains("time_recording"));
 
             // compute
-            double time = deps.value("workout_time")->value(true);
+            double time = deps.value("time_recording")->value(true);
             double inzone = deps.value("time_in_zone_P4")->value(true);
 
             if (time && inzone) setValue((inzone / time) * 100.00);
@@ -478,6 +481,7 @@ class PaceZonePTime4 : public RideMetric {
             setCount(time);
         }
 
+        bool aggregateZero() const { return true; }
         bool canAggregate() { return false; }
         void aggregateWith(const RideMetric &) {}
     MetricClass classification() const { return Undefined; }
@@ -511,10 +515,10 @@ class PaceZonePTime5 : public RideMetric {
         void compute(RideItem *, Specification, const QHash<QString,RideMetric*> &deps) {
 
             assert(deps.contains("time_in_zone_P5"));
-            assert(deps.contains("workout_time"));
+            assert(deps.contains("time_recording"));
 
             // compute
-            double time = deps.value("workout_time")->value(true);
+            double time = deps.value("time_recording")->value(true);
             double inzone = deps.value("time_in_zone_P5")->value(true);
 
             if (time && inzone) setValue((inzone / time) * 100.00);
@@ -522,6 +526,7 @@ class PaceZonePTime5 : public RideMetric {
             setCount(time);
         }
 
+        bool aggregateZero() const { return true; }
         bool canAggregate() { return false; }
         void aggregateWith(const RideMetric &) {}
     MetricClass classification() const { return Undefined; }
@@ -555,10 +560,10 @@ class PaceZonePTime6 : public RideMetric {
         void compute(RideItem *, Specification, const QHash<QString,RideMetric*> &deps) {
 
             assert(deps.contains("time_in_zone_P6"));
-            assert(deps.contains("workout_time"));
+            assert(deps.contains("time_recording"));
 
             // compute
-            double time = deps.value("workout_time")->value(true);
+            double time = deps.value("time_recording")->value(true);
             double inzone = deps.value("time_in_zone_P6")->value(true);
 
             if (time && inzone) setValue((inzone / time) * 100.00);
@@ -566,6 +571,7 @@ class PaceZonePTime6 : public RideMetric {
             setCount(time);
         }
 
+        bool aggregateZero() const { return true; }
         bool canAggregate() { return false; }
         void aggregateWith(const RideMetric &) {}
     MetricClass classification() const { return Undefined; }
@@ -599,10 +605,10 @@ class PaceZonePTime7 : public RideMetric {
         void compute(RideItem *, Specification, const QHash<QString,RideMetric*> &deps) {
 
             assert(deps.contains("time_in_zone_P7"));
-            assert(deps.contains("workout_time"));
+            assert(deps.contains("time_recording"));
 
             // compute
-            double time = deps.value("workout_time")->value(true);
+            double time = deps.value("time_recording")->value(true);
             double inzone = deps.value("time_in_zone_P7")->value(true);
 
             if (time && inzone) setValue((inzone / time) * 100.00);
@@ -610,6 +616,7 @@ class PaceZonePTime7 : public RideMetric {
             setCount(time);
         }
 
+        bool aggregateZero() const { return true; }
         bool canAggregate() { return false; }
         void aggregateWith(const RideMetric &) {}
     MetricClass classification() const { return Undefined; }
@@ -643,10 +650,10 @@ class PaceZonePTime8 : public RideMetric {
         void compute(RideItem *, Specification, const QHash<QString,RideMetric*> &deps) {
 
             assert(deps.contains("time_in_zone_P8"));
-            assert(deps.contains("workout_time"));
+            assert(deps.contains("time_recording"));
 
             // compute
-            double time = deps.value("workout_time")->value(true);
+            double time = deps.value("time_recording")->value(true);
             double inzone = deps.value("time_in_zone_P8")->value(true);
 
             if (time && inzone) setValue((inzone / time) * 100.00);
@@ -654,6 +661,7 @@ class PaceZonePTime8 : public RideMetric {
             setCount(time);
         }
 
+        bool aggregateZero() const { return true; }
         bool canAggregate() { return false; }
         void aggregateWith(const RideMetric &) {}
     MetricClass classification() const { return Undefined; }
@@ -687,10 +695,10 @@ class PaceZonePTime9 : public RideMetric {
         void compute(RideItem *, Specification, const QHash<QString,RideMetric*> &deps) {
 
             assert(deps.contains("time_in_zone_P9"));
-            assert(deps.contains("workout_time"));
+            assert(deps.contains("time_recording"));
 
             // compute
-            double time = deps.value("workout_time")->value(true);
+            double time = deps.value("time_recording")->value(true);
             double inzone = deps.value("time_in_zone_P9")->value(true);
 
             if (time && inzone) setValue((inzone / time) * 100.00);
@@ -698,6 +706,7 @@ class PaceZonePTime9 : public RideMetric {
             setCount(time);
         }
 
+        bool aggregateZero() const { return true; }
         bool canAggregate() { return false; }
         void aggregateWith(const RideMetric &) {}
     MetricClass classification() const { return Undefined; }
@@ -731,10 +740,10 @@ class PaceZonePTime10 : public RideMetric {
         void compute(RideItem *, Specification, const QHash<QString,RideMetric*> &deps) {
 
             assert(deps.contains("time_in_zone_P10"));
-            assert(deps.contains("workout_time"));
+            assert(deps.contains("time_recording"));
 
             // compute
-            double time = deps.value("workout_time")->value(true);
+            double time = deps.value("time_recording")->value(true);
             double inzone = deps.value("time_in_zone_P10")->value(true);
 
             if (time && inzone) setValue((inzone / time) * 100.00);
@@ -742,6 +751,7 @@ class PaceZonePTime10 : public RideMetric {
             setCount(time);
         }
 
+        bool aggregateZero() const { return true; }
         bool canAggregate() { return false; }
         void aggregateWith(const RideMetric &) {}
     MetricClass classification() const { return Undefined; }
@@ -762,43 +772,43 @@ static bool addAllZones() {
     RideMetricFactory::instance().addMetric(PaceZoneTime10());
     QVector<QString> deps;
     deps.append("time_in_zone_P1");
-    deps.append("workout_time");
+    deps.append("time_recording");
     RideMetricFactory::instance().addMetric(PaceZonePTime1(), &deps);
     deps.clear();
     deps.append("time_in_zone_P2");
-    deps.append("workout_time");
+    deps.append("time_recording");
     RideMetricFactory::instance().addMetric(PaceZonePTime2(), &deps);
     deps.clear();
     deps.append("time_in_zone_P3");
-    deps.append("workout_time");
+    deps.append("time_recording");
     RideMetricFactory::instance().addMetric(PaceZonePTime3(), &deps);
     deps.clear();
     deps.append("time_in_zone_P4");
-    deps.append("workout_time");
+    deps.append("time_recording");
     RideMetricFactory::instance().addMetric(PaceZonePTime4(), &deps);
     deps.clear();
     deps.append("time_in_zone_P5");
-    deps.append("workout_time");
+    deps.append("time_recording");
     RideMetricFactory::instance().addMetric(PaceZonePTime5(), &deps);
     deps.clear();
     deps.append("time_in_zone_P6");
-    deps.append("workout_time");
+    deps.append("time_recording");
     RideMetricFactory::instance().addMetric(PaceZonePTime6(), &deps);
     deps.clear();
     deps.append("time_in_zone_P7");
-    deps.append("workout_time");
+    deps.append("time_recording");
     RideMetricFactory::instance().addMetric(PaceZonePTime7(), &deps);
     deps.clear();
     deps.append("time_in_zone_P8");
-    deps.append("workout_time");
+    deps.append("time_recording");
     RideMetricFactory::instance().addMetric(PaceZonePTime8(), &deps);
     deps.clear();
     deps.append("time_in_zone_P9");
-    deps.append("workout_time");
+    deps.append("time_recording");
     RideMetricFactory::instance().addMetric(PaceZonePTime9(), &deps);
     deps.clear();
     deps.append("time_in_zone_P10");
-    deps.append("workout_time");
+    deps.append("time_recording");
     RideMetricFactory::instance().addMetric(PaceZonePTime10(), &deps);
     return true;
 }

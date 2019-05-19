@@ -54,8 +54,9 @@ class RideBest;
 // 18        14 Sep 2018 Riccio Clista    Added IgnoreZeros
 // 19        05 Jan 2018 Mark Liversedge  Performance tests and weekly performances
 // 20        07 Jan 2018 Mark Liversedge  Flagged as possibly submaximal weekly best
+// 21        15 Apr 2019 Ale Martinez     Added run flag to Estimate
 
-#define LTM_VERSION_NUMBER 20
+#define LTM_VERSION_NUMBER 21
 
 // group by settings
 #define LTM_DAY     1
@@ -135,6 +136,7 @@ class MetricDetail {
     int estimateDuration;       // n x units below for seconds
     int estimateDuration_units; // 1=secs, 60=mins, 3600=hours
     bool wpk; // absolute or wpk 
+    bool run; // cycling or running
 
     // for FORMULAs
     QString formula;

@@ -502,6 +502,14 @@ struct FitFileReaderState
                   case 2: return "BSX Insight 2";
                   default: return QString("igpsport %1").arg(prod);
             }
+        } else if (manu == 258) {
+            // Lezyne
+            switch (prod) {
+                case -1: return "Lezyne";
+                case 6: return "Lezyne Micro-GPS";
+                case 11: return "Lezyne MegaXL";
+                default: return QString("Lezyne %1").arg(prod);
+            }
         } else if (manu == 260) {
             // Zwift
             return "Zwift";

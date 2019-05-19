@@ -165,7 +165,11 @@ Estimator::calculate()
 void
 Estimator::run()
 {
-    printd("Estimator starts.\n");
+  for (int i = 0; i < 2; i++) {
+
+    bool isRun = (i > 0); // two times: one for rides and other for runs
+
+    printd("%s Estimates start.\n", isRun ? "Run" : "Bike");
 
     // this needs to be done once all the other metrics
     // Calculate a *monthly* estimate of CP, W' etc using
@@ -189,8 +193,8 @@ Estimator::run()
     // what dates have any power data ?
     foreach(RideItem *item, rides) {
 
-        // has power, but not running
-        if (item->present.contains("P") && !item->isRun) {
+        // has power and matches sport
+        if (item->present.contains("P") && item->isRun == isRun) {
 
             // no date set
             if (from == QDate()) from = item->dateTime.date();
@@ -214,17 +218,20 @@ Estimator::run()
     // set up the models we support
     CP2Model p2model(context);
     CP3Model p3model(context);
+    ExtendedModel extmodel(context);
+#if 0 // disable until model fitting errors are fixed (!!!)
     WSModel wsmodel(context);
     MultiModel multimodel(context);
-    ExtendedModel extmodel(context);
+#endif
 
     QList <PDModel *> models;
     models << &p2model;
     models << &p3model;
-    models << &multimodel;
     models << &extmodel;
+#if 0 // disable until model fitting errors are fixed (!!!)
+    models << &multimodel;
     models << &wsmodel;
-
+#endif
 
     // from has first ride with Power data / looking at the next 7 days of data with Power
     // calculate Estimates for all data per week including the week of the last Power recording
@@ -246,9 +253,9 @@ Estimator::run()
         // months is a rolling 3 months sets of bests
         QVector<float> wpk; // for getting the wpk values
 
-        // don't include RUNS .....................................................................vvvvv
+        // include only rides or runs .............................................................vvvvv
         QVector<QDate> weekdates;
-        QVector<float> week = RideFileCache::meanMaxPowerFor(context, wpk, begin, end, &weekdates, false);
+        QVector<float> week = RideFileCache::meanMaxPowerFor(context, wpk, begin, end, &weekdates, isRun);
 
         // lets extract the best performance of the week first.
         // only care about performances between 3-20 minutes.
@@ -258,12 +265,13 @@ Estimator::run()
             double p = double(week[t]);
             if (week[t]<=0) continue;
 
-            double pix = powerIndex(p, t);
+            double pix = powerIndex(p, t, isRun);
             if (pix > bestperformance.powerIndex) {
                 bestperformance.duration = t;
                 bestperformance.power = p;
                 bestperformance.powerIndex = pix;
                 bestperformance.when = weekdates[t];
+                bestperformance.run = isRun;
 
                 // for filter, saves having to convert as we go
                 bestperformance.x = bestperformance.when.toJulianDay();
@@ -283,6 +291,7 @@ Estimator::run()
             model->setData(bests.aggregate());
             model->saveParameters(add.parameters); // save the computed parms
 
+            add.run = isRun;
             add.wpk = false;
             add.from = begin;
             add.to = end;
@@ -343,15 +352,21 @@ Estimator::run()
 
     // now update them
     lock.lock();
-    estimates = est;
-    performances = perfs;
+    if (i == 0) {
+        estimates = est;
+        performances = perfs;
+    } else {
+        estimates.append(est);
+        performances.append(perfs);
+    }
     lock.unlock();
 
     // debug dump peak performances
     foreach(Performance p, performances) {
-        printd("%f Peak: %f for %f secs on %s\n", p.powerIndex, p.power, p.duration, p.when.toString().toStdString().c_str());
+        printd("%s %f Peak: %f for %f secs on %s\n", p.run ? "Run" : "Bike", p.powerIndex, p.power, p.duration, p.when.toString().toStdString().c_str());
     }
-    printd("Estimates end\n");
+    printd("%s Estimates end.\n", isRun ? "Run" : "Bike");
+  }
 }
 
 void
@@ -449,11 +464,11 @@ Estimator::compareZoneRangeToEstimate(ZoneRange range, PDEstimate est)
     return result;
 }
 
-Performance Estimator::getPerformanceForDate(QDate date)
+Performance Estimator::getPerformanceForDate(QDate date, bool wantrun)
 {
     // serial search is ok as low numberish - always takes first as should be no dupes
     foreach(Performance p, performances) {
-        if (p.when == date) return p;
+        if (p.when == date && p.run == wantrun) return p;
     }
     return Performance(QDate(),0,0,0);
 }

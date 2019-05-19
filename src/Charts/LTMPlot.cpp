@@ -3063,6 +3063,14 @@ void
 LTMPlot::createEstimateData(Context *context, LTMSettings *settings, MetricDetail metricDetail,
                                               QVector<double>&x,QVector<double>&y,int&n, bool)
 {
+    // curve specific filter, used to figure out if all activities are runs
+    Specification spec = settings->specification;
+    if (!SearchFilterBox::isNull(metricDetail.datafilter))
+        spec.addMatches(SearchFilterBox::matches(context, metricDetail.datafilter));
+    int nActivities, nRides, nRuns, nSwims;
+    context->athlete->rideCache->getRideTypeCounts(spec, nActivities, nRides, nRuns, nSwims);
+    metricDetail.run = (nRuns > 0 && nActivities == nRuns);
+
     // resize the curve array to maximum possible size (even if we don't need it)
     int maxdays = groupForDate(settings->end.date(), settings->groupBy)
                     - groupForDate(settings->start.date(), settings->groupBy);
@@ -3086,6 +3094,9 @@ LTMPlot::createEstimateData(Context *context, LTMSettings *settings, MetricDetai
 
     // loop through all the estimate data
     foreach(PDEstimate est, context->athlete->getPDEstimates()) {
+
+        // skip if not the requested sport
+        if (est.run != metricDetail.run) continue;
 
         // wpk skip for now
         if (est.wpk != metricDetail.wpk) continue;
@@ -3750,6 +3761,14 @@ LTMPlot::createMeasureData(Context *context, LTMSettings *settings, MetricDetail
 void
 LTMPlot::createPerformanceData(Context *context, LTMSettings *settings, MetricDetail metricDetail, QVector<double>&x,QVector<double>&y,int&n, bool)
 {
+    // curve specific filter, used to figure out if all activities are runs
+    Specification spec = settings->specification;
+    if (!SearchFilterBox::isNull(metricDetail.datafilter))
+        spec.addMatches(SearchFilterBox::matches(context, metricDetail.datafilter));
+    int nActivities, nRides, nRuns, nSwims;
+    context->athlete->rideCache->getRideTypeCounts(spec, nActivities, nRides, nRuns, nSwims);
+    metricDetail.run = (nRuns > 0 && nActivities == nRuns);
+
     int maxdays = groupForDate(settings->end.date(), settings->groupBy)
                     - groupForDate(settings->start.date(), settings->groupBy);
 
@@ -3768,6 +3787,9 @@ LTMPlot::createPerformanceData(Context *context, LTMSettings *settings, MetricDe
     // scan for performance tests and create a map so we can lookup quickly
     QHash<QDate, Performance> tests;
     foreach (RideItem *item, context->athlete->rideCache->rides()) {
+
+        if (!spec.pass(item)) continue; // skip filtered out activities
+
         if (item->dateTime.date() >= settings->start.date() && item->dateTime.date() <= settings->end.date()) {
             foreach(IntervalItem *i, item->intervals()) {
                 if (i->istest()) {
@@ -3807,12 +3829,12 @@ LTMPlot::createPerformanceData(Context *context, LTMSettings *settings, MetricDe
         }
         if (metricDetail.perfs && value <= 0) {
             // is there a weekly performance today?
-            Performance p = context->athlete->rideCache->estimator->getPerformanceForDate(date);
+            Performance p = context->athlete->rideCache->estimator->getPerformanceForDate(date, metricDetail.run);
             if (!p.submaximal) value = p.powerIndex;
         }
         if (metricDetail.submax && value <= 0) {
             // is there a submax weekly performance today?
-            Performance p = context->athlete->rideCache->estimator->getPerformanceForDate(date);
+            Performance p = context->athlete->rideCache->estimator->getPerformanceForDate(date, metricDetail.run);
             if (p.submaximal) value = p.powerIndex;
         }
 

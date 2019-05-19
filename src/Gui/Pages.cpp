@@ -559,6 +559,8 @@ CredentialsPage::deleteClicked()
 
         // set it inactive
         appsettings->setCValue(context->athlete->cyclist, service->activeSettingName(), false);
+        appsettings->setCValue(context->athlete->cyclist, service->syncOnStartupSettingName(), false);
+        appsettings->setCValue(context->athlete->cyclist, service->syncOnImportSettingName(), false);
 
         // reset
         resetList();
