@@ -22,26 +22,26 @@
 #include "LTMTrend.h"
 #include "lmcurve.h"
 
-PDModelDescriptor::PDModelDescriptor(int position, bool hasWPrime, bool hasCP, bool hasFTP, bool hasPMax,
+PDModelDescriptor::PDModelDescriptor(int position, bool hasWPrime, bool hasTau, bool hasCP, bool hasFTP, bool hasPMax,
                                      QString name, QString code)
-    : position(position), hasWPrime(hasWPrime), hasCP(hasCP), hasFTP(hasFTP), hasPMax(hasPMax), name(name), code(code)
+    : position(position), hasWPrime(hasWPrime), hasTau(hasTau), hasCP(hasCP), hasFTP(hasFTP), hasPMax(hasPMax), name(name), code(code)
 {
 }
 
 const PDModelDescriptor &CP2Model::descriptor =
-        PDModelDescriptor(0, true, true, false, false, tr("Classic 2 Parameter"), "2 Parm");
+        PDModelDescriptor(0, true, true, true, false, false, tr("Classic 2 Parameter"), "2 Parm");
 
 const PDModelDescriptor &CP3Model::descriptor =
-        PDModelDescriptor(1, true, true, false, true, tr("Morton 3 Parameter"), "3 Parm");
+        PDModelDescriptor(1, true, true, true, false, true, tr("Morton 3 Parameter"), "3 Parm");
 
 const PDModelDescriptor &WSModel::descriptor =
-        PDModelDescriptor(2, true, true, true, true, tr("Ward-Smith"), "WS");
+        PDModelDescriptor(2, true, true, true, true, true, tr("Ward-Smith"), "WS");
 
 const PDModelDescriptor &MultiModel::descriptor =
-        PDModelDescriptor(3, true, true, true, true, tr("Veloclinic Multicomponent"), "Velo");
+        PDModelDescriptor(3, true, true, true, true, true, tr("Veloclinic Multicomponent"), "Velo");
 
 const PDModelDescriptor &ExtendedModel::descriptor =
-        PDModelDescriptor(4, true, true, true, true, tr("Extended CP"), "Ext");
+        PDModelDescriptor(4, true, true, true, true, true, tr("Extended CP"), "Ext");
 
 struct PDModelRegistryImpl
 {
@@ -594,6 +594,12 @@ CP2Model::WPrime()
 }
 
 double
+CP2Model::Tau()
+{
+    return tau;
+}
+
+double
 CP2Model::CP()
 {
     return cp;
@@ -667,6 +673,12 @@ CP3Model::WPrime()
 {
     // kjoules
     return (cp * tau * 60);
+}
+
+double
+CP3Model::Tau()
+{
+    return tau;
 }
 
 double
@@ -744,6 +756,12 @@ WSModel::WPrime()
 {
     // kjoules
     return (cp * tau * 60);
+}
+
+double
+WSModel::Tau()
+{
+    return tau;
 }
 
 double
@@ -899,6 +917,12 @@ MultiModel::WPrime()
 }
 
 double
+MultiModel::Tau()
+{
+    return tau;
+}
+
+double
 MultiModel::CP()
 {
     if (data.size()) return y(minutes ? 60 : 3600);
@@ -1014,6 +1038,12 @@ ExtendedModel::WPrime()
 {
     // kjoules
     return (ecp * etau * 60);
+}
+
+double
+ExtendedModel::Tau()
+{
+    return etau;
 }
 
 double

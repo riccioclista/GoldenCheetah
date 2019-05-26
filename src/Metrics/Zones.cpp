@@ -74,7 +74,7 @@ void Zones::initializeZoneParameters()
 }
 
 // read zone file, allowing for zones with or without end dates
-bool Zones::read(QFile &file)
+bool Zones::read(QFile &file, int defaulttau)
 {
     defaults_from_user = false;
     scheme.zone_default.clear();
@@ -125,6 +125,7 @@ bool Zones::read(QFile &file)
     };
     QRegExp ftpx("^FTP=(\\d+)$");
     QRegExp wprimerx("^W'=(\\d+)$");
+    QRegExp taurx("^Tau=(\\d+)$");
     QRegExp pmaxx("^Pmax=(\\d+)$");
     QRegExp originrx("^Origin=(.*)$");
     QRegExp zonerx("^\\s*([^ ,][^,]*),\\s*([^ ,][^,]*),\\s*"
@@ -142,6 +143,7 @@ bool Zones::read(QFile &file)
     int cp=0;
     int ftp=0;
     int wprime=0;
+    int tau=0;
     int pmax=0;
     QString origin;
     QList<ZoneInfo> zoneInfos;
@@ -184,7 +186,7 @@ bool Zones::read(QFile &file)
                 if (in_range) {
 
                     // if zones are empty, then generate them
-                    ZoneRange range(begin, end, cp, ftp ? ftp : cp, wprime ? wprime : defaultwprime, pmax ? pmax : defaultpmax, origin);
+                    ZoneRange range(begin, end, cp, ftp ? ftp : cp, wprime ? wprime : defaultwprime, tau ? tau : defaulttau, pmax ? pmax : defaultpmax, origin);
                     range.zones = zoneInfos;
 
                     if (range.zones.empty()) {
@@ -281,6 +283,22 @@ bool Zones::read(QFile &file)
                     defaultwprime = wprime;
                 } else {
                     wprime = defaultwprime;
+                }
+            }
+        }
+
+        // check for tau
+        if (taurx.indexIn(line, 0) != -1) {
+            if (!in_range)
+                qDebug()<<"ignoring errant Tau= in "<<fileName_;
+            else {
+                tau = taurx.cap(1).toInt();
+
+                // if it is zero as never set, then use default
+                if (tau) {
+                    defaulttau = tau;
+                } else {
+                    tau = defaulttau;
                 }
             }
         }
@@ -391,7 +409,7 @@ next_line: {}
 
     if (in_range) {
 
-        ZoneRange range(begin, end, cp, ftp ? ftp : cp, wprime ? wprime : defaultwprime, pmax ? pmax : defaultpmax, origin);
+        ZoneRange range(begin, end, cp, ftp ? ftp : cp, wprime ? wprime : defaultwprime, tau ? tau : defaulttau, pmax ? pmax : defaultpmax, origin);
         range.zones = zoneInfos;
 
         if (range.zones.empty()) {
@@ -596,6 +614,12 @@ int Zones::getWprime(int rnum) const
     return ranges[rnum].wprime;
 }
 
+int Zones::getTau(int rnum) const
+{
+    assert(rnum < ranges.size());
+    return ranges[rnum].tau;
+}
+
 int Zones::getPmax(int rnum) const
 {
     assert(rnum < ranges.size());
@@ -795,6 +819,7 @@ void Zones::write(QDir home)
         int cp = getCP(i);
         int ftp = getFTP(i);
         int wprime = getWprime(i);
+        int tau = getTau(i);
         int pmax = getPmax(i);
         QString origin = getOrigin(i);
 
@@ -812,6 +837,8 @@ void Zones::write(QDir home)
         strzones += QString("FTP=%1\n").arg(ftp);
         // wite out the W' value
         strzones += QString("W'=%1\n").arg(wprime);
+        // wite out the Tau value
+        strzones += QString("Tau=%1\n").arg(tau);
         // wite out the Pmax value
         strzones += QString("Pmax=%1\n").arg(pmax);
         // wite out the Origin value
@@ -877,7 +904,7 @@ void Zones::write(QDir home)
 
 // insert a new zone range using the current scheme
 // return the range number
-int Zones::addZoneRange(QDate _start, int _cp, int _ftp, int _wprime, int _pmax, QString origin)
+int Zones::addZoneRange(QDate _start, int _cp, int _ftp, int _wprime, int _tau, int _pmax, QString origin)
 {
     int rnum;
 
@@ -885,7 +912,7 @@ int Zones::addZoneRange(QDate _start, int _cp, int _ftp, int _wprime, int _pmax,
     for(rnum=0; rnum < ranges.count(); rnum++) if (ranges[rnum].begin > _start) break;
 
     // at the end ?
-    ZoneRange range = ZoneRange(_start, date_infinity, _cp, _ftp, _wprime, _pmax, origin);
+    ZoneRange range = ZoneRange(_start, date_infinity, _cp, _ftp, _wprime, _tau, _pmax, origin);
     if (rnum == ranges.count()) {
         ranges.append(range);
     } else {
@@ -1006,6 +1033,9 @@ Zones::getFingerprint() const
         // W'
         x += ranges[i].wprime;
 
+        // Tau
+        x += ranges[i].tau;
+
         // W'
         x += ranges[i].pmax;
 
@@ -1038,6 +1068,9 @@ Zones::getFingerprint(QDate forDate) const
 
         // W'
         x += ranges[i].wprime;
+
+        // Tau
+        x += ranges[i].tau;
 
         // Pmax
         x += ranges[i].pmax;

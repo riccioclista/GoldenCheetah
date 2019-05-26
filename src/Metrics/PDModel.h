@@ -61,12 +61,13 @@
 class PDModelDescriptor
 {
     public:
-        PDModelDescriptor(int position, bool hasWPrime, bool hasCP, bool hasFTP, bool hasPMax,
+        PDModelDescriptor(int position, bool hasWPrime, bool hasTau, bool hasCP, bool hasFTP, bool hasPMax,
                           QString name, QString code);
 
         const int position; // position of the model in a container
 
         const bool hasWPrime; // can estimate W'
+        const bool hasTau;    // can estimate Tau
         const bool hasCP;     // can estimate CP
         const bool hasFTP;    // can estimate FTP
         const bool hasPMax;   // can estimate PMax
@@ -137,11 +138,13 @@ class PDModel : public QObject, public QwtSyntheticPointData
         // what capabilities do you have ?
         // sticking with 4 key measures for now
         bool hasWPrime() const { return descriptor.hasWPrime; }  // can estimate W'
+        bool hasTau()    const { return descriptor.hasTau; }     // can estimate Tau
         bool hasCP()     const { return descriptor.hasCP; }      // can estimate CP
         bool hasFTP()    const { return descriptor.hasFTP; }     // can estimate FTP
         bool hasPMax()   const { return descriptor.hasPMax; }    // can estimate PMax
 
         virtual double WPrime()     { return 0; }      // return estimated W'
+        virtual double Tau()        { return 0; }      // return estimated Tau
         virtual double CP()         { return 0; }      // return CP
         virtual double FTP()        { return 0; }      // return FTP
         virtual double PMax()       { return 0; }      // return PMax
@@ -218,11 +221,12 @@ class PDModel : public QObject, public QwtSyntheticPointData
 class PDEstimate
 {
     public:
-        PDEstimate() : WPrime(0), CP(0), FTP(0), PMax(0), EI(0), wpk(false), run(false) {}
+        PDEstimate() : WPrime(0), Tau(0), CP(0), FTP(0), PMax(0), EI(0), wpk(false), run(false) {}
 
         QDate from, to;
         QString model;
         double WPrime,
+            Tau,
             CP,
             FTP,
             PMax,
@@ -262,6 +266,7 @@ class CP2Model : public PDModel
 
         // 2 parameter model can calculate these
         double WPrime();
+        double Tau();
         double CP();
 
         void saveParameters(QList<double>&here);
@@ -307,6 +312,7 @@ class CP3Model : public PDModel
 
         // 2 parameter model can calculate these
         double WPrime();
+        double Tau();
         double CP();
         double PMax();
 
@@ -333,6 +339,7 @@ class WSModel : public PDModel // ward-smith
 
         // 2 parameter model can calculate these
         double WPrime();
+        double Tau();
         double CP();
         double FTP();
         double PMax();
@@ -362,6 +369,7 @@ class MultiModel : public PDModel
 
         // 2 parameter model can calculate these
         double WPrime();
+        double Tau();
         double CP();
         double FTP();
         double PMax();
@@ -469,6 +477,7 @@ class ExtendedModel : public PDModel
 
         // 4 parameter model can calculate these
         double WPrime();
+        double Tau();
         double CP();
         double FTP();
         double PMax();

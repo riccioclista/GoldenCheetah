@@ -178,6 +178,7 @@ Estimator::run()
     if (curModelInputWeekVal.isNull() || curModelInputWeekVal.toInt() == 0) curModelInputWeekVal = 6;
     RollingBests bests(curModelInputWeekVal.toInt());
     RollingBests bestsWPK(curModelInputWeekVal.toInt());
+    RollingBests bestsTau(curModelInputWeekVal.toInt());
 
     // clear any previous calculations
     QList<PDEstimate> est;
@@ -255,7 +256,8 @@ Estimator::run()
 
         // include only rides or runs .............................................................vvvvv
         QVector<QDate> weekdates;
-        QVector<float> week = RideFileCache::meanMaxPowerFor(context, wpk, begin, end, &weekdates, isRun);
+        float tau = 0.0f;
+        QVector<float> week = RideFileCache::meanMaxPowerFor(context, wpk, begin, end, &weekdates, tau, isRun);
 
         // lets extract the best performance of the week first.
         // only care about performances between 3-20 minutes.
@@ -282,6 +284,12 @@ Estimator::run()
         bests.addBests(week);
         bestsWPK.addBests(wpk);
 
+        QVector<float> tauVector(1);
+        tauVector[0] = tau > 0 && tau < 10000 ? 10000 - tau : 0;
+        bestsTau.addBests(tauVector);
+        tau = bestsTau.aggregate()[0];
+        tau = tau > 0 ? 10000 - tau : 300;
+
         // we now have the data
         foreach(PDModel *model, models) {
 
@@ -297,6 +305,7 @@ Estimator::run()
             add.to = end;
             add.model = model->code();
             add.WPrime = model->hasWPrime() ? model->WPrime() : 0;
+            add.Tau = tau;
             add.CP = model->hasCP() ? model->CP() : 0;
             add.PMax = model->hasPMax() ? model->PMax() : 0;
             add.FTP = model->hasFTP() ? model->FTP() : 0;
@@ -320,6 +329,7 @@ Estimator::run()
             add.to = end;
             add.model = model->code();
             add.WPrime = model->hasWPrime() ? model->WPrime() : 0;
+            add.Tau = tau;
             add.CP = model->hasCP() ? model->CP() : 0;
             add.PMax = model->hasPMax() ? model->PMax() : 0;
             add.FTP = model->hasFTP() ? model->FTP() : 0;
@@ -443,7 +453,7 @@ Estimator::updateCPRangeSettings()
         zones->setZoneRange(zoneRangeCount - 1, newZoneRange);
     } else {
         zones->addZoneRange(dateFrom, qRound(lastEst.CP), qRound(lastEst.FTP),
-                            qRound(lastEst.WPrime), qRound(lastEst.PMax), origin);
+                            qRound(lastEst.WPrime), qRound(lastEst.Tau), qRound(lastEst.PMax), origin);
     }
 
     // write the settings to file
@@ -460,6 +470,7 @@ Estimator::compareZoneRangeToEstimate(ZoneRange range, PDEstimate est)
     result.isCpDifferent = model->hasCP && range.cp != qRound(est.CP);
     result.isFtpDifferent = model->hasFTP && range.ftp != qRound(est.FTP);
     result.isWPrimeDifferent = model->hasWPrime && range.wprime != qRound(est.WPrime);
+    result.isTauDifferent = model->hasTau && range.tau != qRound(est.Tau);
     result.isPMaxDifferent = model->hasPMax && range.pmax != qRound(est.PMax);
     return result;
 }

@@ -37,12 +37,14 @@ struct ZoneRangeEstimateComparisonResult
     bool isCpDifferent;
     bool isFtpDifferent;
     bool isWPrimeDifferent;
+    bool isTauDifferent;
     bool isPMaxDifferent;
 
     bool isDifferent() const {
         return isCpDifferent ||
                isFtpDifferent ||
                isWPrimeDifferent ||
+               isTauDifferent ||
                isPMaxDifferent;
     }
 };

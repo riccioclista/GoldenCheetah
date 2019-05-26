@@ -61,14 +61,15 @@ struct ZoneRange {
     int cp;
     int ftp;
     int wprime; // aka awc
+    int tau;
     int pmax;
     QString origin; // where does it originate from? Was it created manually or imported from a model estimate?
     QList<ZoneInfo> zones;
     bool zonesSetFromCP;
     ZoneRange(const QDate &b, const QDate &e) :
-        begin(b), end(e), cp(0), ftp(0), wprime(0), pmax(0), origin(), zonesSetFromCP(false) {}
-    ZoneRange(const QDate &b, const QDate &e, int _cp, int _ftp, int _wprime, int pmax, QString origin) :
-        begin(b), end(e), cp(_cp), ftp(_ftp), wprime(_wprime), pmax(pmax), origin(origin), zonesSetFromCP(false) {}
+        begin(b), end(e), cp(0), ftp(0), wprime(0), tau(0), pmax(0), origin(), zonesSetFromCP(false) {}
+    ZoneRange(const QDate &b, const QDate &e, int _cp, int _ftp, int _wprime, int _tau, int pmax, QString origin) :
+        begin(b), end(e), cp(_cp), ftp(_ftp), wprime(_wprime), tau(_tau), pmax(pmax), origin(origin), zonesSetFromCP(false) {}
 
     // used by qSort()
     bool operator< (ZoneRange right) const {
@@ -140,7 +141,7 @@ class Zones : public QObject
         int getRangeSize() const;
 
         // Add ranges
-        int addZoneRange(QDate _start, int _cp, int _ftp, int _wprime, int _pmax, QString origin);
+        int addZoneRange(QDate _start, int _cp, int _ftp, int _wprime, int _tau, int _pmax, QString origin);
 
         // Get / Set ZoneRange details
         ZoneRange getZoneRange(int rnum) { return ranges[rnum]; }
@@ -150,6 +151,7 @@ class Zones : public QObject
         int getCP(int rnum) const;
         int getFTP(int rnum) const;
         int getWprime(int rnum) const;
+        int getTau(int rnum) const;
         int getPmax(int rnum) const;
         QString getOrigin(int rnum);
 
@@ -163,7 +165,7 @@ class Zones : public QObject
         //
         // read and write power.zones
         //
-        bool read(QFile &file);
+        bool read(QFile &file, int defaulttau = 300);
         void write(QDir home);
         const QString &fileName() const { return fileName_; }
         const QString &errorString() const { return err; }
