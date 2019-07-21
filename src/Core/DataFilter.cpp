@@ -3089,7 +3089,7 @@ DataFilterRuntime::runPythonScript(Context *context, QString script, RideItem *m
     try {
 
         // run it
-        python->runline(ScriptContext(context, m, nullptr, metrics, spec), script);
+        python->runline(ScriptContext(context, m, metrics, spec, false), script);
         result = python->result;
 
     } catch(std::exception& ex) {
