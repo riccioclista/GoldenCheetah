@@ -375,7 +375,7 @@ while(counter-- && !in.atEnd()) {
             in >> m.perfs;
         }
         if (version >= 20) in >> m.submax;
-        if (version >= 21) in >> m.perfSymbol;
+        if (version >= 22) in >> m.perfSymbol;
 
         bool keep=true;
         // check for deprecated things and set keep=false if
