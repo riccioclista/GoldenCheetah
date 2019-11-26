@@ -379,6 +379,7 @@ struct FitFileReaderState
                 case 3111: return "Garmin Fenix 5x +";
                 case 3112: return "Garmin Edge 520 +";
                 case 3113: return "Garmin FR945";
+                case 3291: return "Garmin Fenix 6x";
                 case 20119: return "Garmin Training Center";
                 case 65532: return "Android ANT+ Plugin";
                 case 65534: return "Garmin Connect Website";
@@ -420,6 +421,8 @@ struct FitFileReaderState
                 case 272: return "Powertap C1";
                 case 288: return "Powertap P1";
                 case 4096: return "Powertap G3";
+                case 4353: return "Powercal";
+
                 default: return QString("Powertap Device %1").arg(prod);
             }
         } else if (manu == 13 ) {
@@ -464,6 +467,12 @@ struct FitFileReaderState
         } else if (manu == 76) {
             // Moxy
             return "Moxy Monitor";
+        } else if (manu == 89) {
+            // Tacx
+            switch (prod) {
+                case 2800: return "Tacx Neo";
+                default: return QString("Tacx %1").arg(prod);
+            }
         } else if (manu == 95) {
             // Stryd
             return "Stryd";
@@ -500,6 +509,12 @@ struct FitFileReaderState
         } else if (manu == 260) {
             // Zwift
             return "Zwift";
+        } else if (manu == 263) {
+            // Favero
+            switch (prod) {
+                case -1: return "Favero";
+                default: return QString("Favero %1").arg(prod);
+            }
         } else if (manu == 267) {
             // Bryton
             return "Bryton";
@@ -516,6 +531,13 @@ struct FitFileReaderState
                 case -1: return "Hammerhead";
                 default: return QString("Hammerhead %1").arg(prod);
             }
+        } else if (manu == 255) {
+            // Development
+            switch (prod) {
+                case -1: return "Development";
+                case 0: return "Development";
+                default: return QString("Development %1").arg(prod);
+            }
         } else {
             QString name = "Unknown FIT Device";
             return name + QString(" %1:%2").arg(manu).arg(prod);
@@ -526,6 +548,7 @@ struct FitFileReaderState
         switch (device_type) {
             case 4: return "Headunit"; // bike_power
             case 11: return "Powermeter"; // bike_power
+            case 17: return "Biketrainer"; // fitness equipment
             case 120: return "HR"; // heart_rate
             case 121: return "Speed-Cadence"; // bike_speed_cadence
             case 122: return "Cadence"; // bike_speed
@@ -778,7 +801,7 @@ struct FitFileReaderState
     void decodeSession(const FitDefinition &def, int,
                        const std::vector<FitValue>& values) {
         int i = 0;
-	QString WorkOutCode = NULL;
+        QString prevSport = rideFile->getTag("Sport", "");
 
         foreach(const FitField &field, def.fields) {
             fit_value_t value = values[i++].v;
@@ -1055,7 +1078,10 @@ struct FitFileReaderState
                 printf("decodeSession  field %d: %d bytes, num %d, type %d\n", i, field.size, field.num, field.type );
             }
         }
-	rideFile->setTag("Workout Code",WorkOutCode);
+        // If the Sport changed tag as a Multisport activity
+        QString newSport = rideFile->getTag("Sport", "");
+        if (prevSport != "" && newSport != "" && newSport != prevSport)
+            rideFile->setTag("Sport", "Multisport");
     }
 
     void decodeDeviceInfo(const FitDefinition &def, int,
@@ -1604,6 +1630,7 @@ struct FitFileReaderState
                             lngi = value;
                             break;
                     case 2: // ALTITUDE
+                    case 78:// ENHANCED ALTITUDE
                             if (!native_profile && field.deve_idx>-1)
                                 alt = deve_value;
                             else
@@ -1623,6 +1650,7 @@ struct FitFileReaderState
                             km = value / 100000.0;
                             break;
                     case 6: // SPEED
+                    case 73:// ENHANCED SPEED
                             kph = value * 3.6 / 1000.0;
                             break;
                     case 7: // POWER
@@ -2284,7 +2312,8 @@ struct FitFileReaderState
 
                 case 9:   // event_timestamp
                           last_event_timestamp = value.v;
-                          start_timestamp = time-last_event_timestamp/1024.0;
+                          // update start_timestamp only if Timestamp (253) included for resyncs
+                          if (time > 0) start_timestamp = time-last_event_timestamp/1024.0;
                           timestamps.append(last_event_timestamp/1024.0);
                           break;
                 case 10:  // event_timestamp_12
@@ -2798,11 +2827,19 @@ struct FitFileReaderState
 
                     case 8: // FLOAT32
                         size = 4;
-                        value.type = FloatValue;
-                        value.f = read_float32(&count);
-                        if (value.f != value.f) // No NAN
-                            value.f = 0;
-                        size = field.size;
+                        if (field.size==size) {
+                            value.type = FloatValue;
+                            value.f = read_float32(&count);
+                            if (value.f != value.f) // No NAN
+                                value.f = 0;
+                        } else { // Multi-values
+                            value.type = ListValue;
+                            value.list.clear();
+                            for (int i=0;i<field.size/size;i++) {
+                                value.list.append(read_float32(&count));
+                            }
+                            size = field.size;
+                        }
                         break;
 
                     //case 9: // FLOAT64

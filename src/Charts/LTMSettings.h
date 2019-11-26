@@ -55,8 +55,9 @@ class RideBest;
 // 19        05 Jan 2018 Mark Liversedge  Performance tests and weekly performances
 // 20        07 Jan 2018 Mark Liversedge  Flagged as possibly submaximal weekly best
 // 21        15 Apr 2019 Ale Martinez     Added run flag to Estimate
+// 22        31 Jul 2019 Ale Martinez     Added perfSymbol for Banister
 
-#define LTM_VERSION_NUMBER 21
+#define LTM_VERSION_NUMBER 22
 
 // group by settings
 #define LTM_DAY     1
@@ -118,7 +119,7 @@ class MetricDetail {
     public:
 
     MetricDetail() : type(METRIC_DB), stack(false), hidden(false), model(""), formulaType(RideMetric::Average), name(""), 
-                     metric(NULL), stressType(0), measureGroup(0), measureField(0), tests(true), perfs(true),
+                     metric(NULL), stressType(0), measureGroup(0), measureField(0), tests(true), perfs(true), perfSymbol("power_index"),
                      smooth(false), trendtype(0), topN(0), lowestN(0), topOut(0), baseline(0.0), 
                      curveStyle(QwtPlotCurve::Lines), symbolStyle(QwtSymbol::NoSymbol),
                      penColor(Qt::black), penAlpha(0), penWidth(1.0), penStyle(0),
@@ -164,6 +165,9 @@ class MetricDetail {
     bool tests;
     bool perfs;
     bool submax;
+
+    // for Banister
+    QString perfSymbol;
 
     // GENERAL SETTINGS FOR A METRIC
     QString uname, uunits; // user specified name and units (axis choice)

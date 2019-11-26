@@ -104,7 +104,7 @@ OAuthDialog::OAuthDialog(Context *context, OAuthSite site, CloudService *service
 
         urlstr = QString("https://www.strava.com/oauth/authorize?");
         urlstr.append("client_id=").append(GC_STRAVA_CLIENT_ID).append("&");
-        urlstr.append("scope=view_private,write&");
+        urlstr.append("scope=activity:read_all,activity:write&");
         urlstr.append("redirect_uri=http://www.goldencheetah.org/&");
         urlstr.append("response_type=code&");
         urlstr.append("approval_prompt=force");
@@ -563,6 +563,8 @@ OAuthDialog::networkRequestFinished(QNetworkReply *reply)
         } else if (site == STRAVA) {
 
             service->setSetting(GC_STRAVA_TOKEN, access_token);
+            service->setSetting(GC_STRAVA_REFRESH_TOKEN, refresh_token);
+            service->setSetting(GC_STRAVA_LAST_REFRESH, QDateTime::currentDateTime());
             QString info = QString(tr("Strava authorization was successful."));
             QMessageBox information(QMessageBox::Information, tr("Information"), info);
             information.exec();

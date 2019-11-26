@@ -15,8 +15,8 @@ sudo add-apt-repository -y ppa:jonathonf/vlc
 sudo apt-get update -qq
 sudo apt-get install -qq vlc libvlc-dev libvlccore-dev
 
-# R 3.5
-sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
+# R 3.6
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
 sudo add-apt-repository -y "deb https://cloud.r-project.org/bin/linux/ubuntu xenial-cran35/"
 sudo apt-get update -qq
 sudo apt-get install r-base-dev
@@ -37,15 +37,7 @@ sudo make install
 cd ${TRAVIS_BUILD_DIR}
 
 # LIBUSB
-#sudo apt-get install -qq libusb-dev libudev-dev
 sudo apt-get install -qq libusb-1.0-0-dev libudev-dev
-wget https://sourceforge.net/projects/libusb/files/libusb-compat-0.1/libusb-compat-0.1.5/libusb-compat-0.1.5.tar.bz2/download -O libusb-compat-0.1.5.tar.bz2
-tar xf libusb-compat-0.1.5.tar.bz2
-cd libusb-compat-0.1.5
-./configure --disable-shared --enable-static
-make --silent -j3
-sudo make install
-cd ${TRAVIS_BUILD_DIR}
 
 # Add Python 3.6 and SIP
 sudo add-apt-repository -y ppa:jonathonf/python-3.6

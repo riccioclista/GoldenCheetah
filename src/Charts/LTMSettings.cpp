@@ -234,6 +234,7 @@ QDataStream &operator<<(QDataStream &out, const LTMSettings &settings)
         out<<metric.tests;
         out<<metric.perfs;
         out<<metric.submax;
+        out<<metric.perfSymbol;
     }
     out<<settings.showData;
     out<<settings.stack;
@@ -374,6 +375,7 @@ while(counter-- && !in.atEnd()) {
             in >> m.perfs;
         }
         if (version >= 20) in >> m.submax;
+        if (version >= 21) in >> m.perfSymbol;
 
         bool keep=true;
         // check for deprecated things and set keep=false if

@@ -103,13 +103,19 @@ VideoWindow::VideoWindow(Context *context)  :
         layout->addWidget(container);
         libvlc_media_player_set_hwnd (mp, (HWND)(container->winId()));
 
+        // Video Overlays Initialization: if video config file is not present
+        // copy a default one to be used as a model by the user.
+        // An empty video-layout.xml file disables video overlays
         QString filename = context->athlete->home->config().canonicalPath() + "/" + "video-layout.xml";
-        QFileInfo finfo(filename);
-
-        if (finfo.exists())
+        QFile file(filename);
+        if (!file.exists())
         {
-            QFile file(filename);
-
+            file.setFileName(":/xml/video-layout.xml");
+            file.copy(filename);
+            QFile::setPermissions(filename, QFileDevice::ReadUser|QFileDevice::WriteUser);
+        }
+        if (file.exists())
+        {
             // clean previous layout
             foreach(MeterWidget* p_meterWidget, m_metersWidget)
             {
@@ -315,6 +321,31 @@ void VideoWindow::telemetryUpdate(RealtimeData rtd)
         {
             p_meterWidget->Value =  rtd.getHr();
             p_meterWidget->Text = QString::number((int)p_meterWidget->Value) + tr(" bpm");
+        }
+        else if (p_meterWidget->Source() == QString("Load"))
+        {
+            p_meterWidget->Value = rtd.getLoad();
+            p_meterWidget->Text = QString::number((int)p_meterWidget->Value);
+        }
+        else if (p_meterWidget->Source() == QString("Time"))
+        {
+            p_meterWidget->Value = round(rtd.value(RealtimeData::Time)/100.0)/10.0;
+            p_meterWidget->Text = time_to_string(p_meterWidget->Value);
+        }
+        else if (p_meterWidget->Source() == QString("LapTime"))
+        {
+            p_meterWidget->Value = round(rtd.value(RealtimeData::LapTime)/100.0)/10.0;
+            p_meterWidget->Text = time_to_string(p_meterWidget->Value);
+        }
+        else if (p_meterWidget->Source() == QString("LapTimeRemaining"))
+        {
+            p_meterWidget->Value = round(rtd.value(RealtimeData::LapTimeRemaining)/100.0)/10.0;
+            p_meterWidget->Text = time_to_string(p_meterWidget->Value);
+        }
+        else if (p_meterWidget->Source() == QString("ErgTimeRemaining"))
+        {
+            p_meterWidget->Value = round(rtd.value(RealtimeData::ErgTimeRemaining)/100.0)/10.0;
+            p_meterWidget->Text = time_to_string(p_meterWidget->Value);
         }
         else if (p_meterWidget->Source() == QString("TrainerStatus"))
         {

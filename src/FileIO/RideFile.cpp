@@ -224,8 +224,9 @@ RideFile::isRun() const
 bool
 RideFile::isSwim() const
 {
-    // for now we just look at Sport
-    return (getTag("Sport", "") == "Swim" || getTag("Sport", "") == tr("Swim"));
+    // for now we just look at Sport or presence of length data for lap swims
+    return (getTag("Sport", "") == "Swim" || getTag("Sport", "") == tr("Swim")) ||
+           (getTag("Sport","") == "" && xdata_.value("SWIM", NULL) != NULL);
 }
 
 // compatibility means used in e.g. R so no spaces in names,
@@ -2764,7 +2765,7 @@ RideFile::recalculateDerivedSeries(bool force)
 
         for(int i=0; i<hrArray.count(); i++) {
             double x_pred = a1 * x;
-            double v_pred = (a1  * a1 ) * (v+gamma);
+            double v_pred = (a1  * a1 ) * v + gamma;
 
             double z = hrArray[i];
             double c_vc = 2.0f *  b2 * x_pred + b1;
